@@ -1,0 +1,42 @@
+CLASS
+IDENTIFIER      // Breakfast
+LEFT_BRACE      // {
+IDENTIFIER      // init
+LEFT_PAREN      // (
+IDENTIFIER      // meat
+COMMA           // ,
+IDENTIFIER      // bread
+RIGHT_PAREN     // )
+LEFT_BRACE      // {
+THIS
+DOT             // .
+IDENTIFIER      // meat
+EQUAL           // =
+IDENTIFIER      // meat
+SEMICOLON       // ;
+THIS
+DOT             // .
+IDENTIFIER      // bread
+EQUAL           // =
+IDENTIFIER      // bread
+SEMICOLON       // ;
+RIGHT_BRACE     // }
+RIGHT_BRACE     // }
+VAR
+IDENTIFIER      // baconAndToast
+EQUAL           // =
+IDENTIFIER      // Breakfast
+LEFT_PAREN      // (
+STRING          // "bacon"
+COMMA           // ,
+STRING          // "toast"
+RIGHT_PAREN     // )
+SEMICOLON       // ;
+IDENTIFIER      // baconAndToast
+DOT             // .
+IDENTIFIER      // serve
+LEFT_PAREN      // (
+STRING          // "Dear Reader"
+RIGHT_PAREN     // )
+SEMICOLON       // ;
+EOF
