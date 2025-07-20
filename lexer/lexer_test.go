@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -35,7 +36,9 @@ func TestLexer(t *testing.T) {
 
 		e := strings.TrimSpace(strings.Split(exp[i], "/")[0])
 		if e != token.Type.String() {
-			t.Errorf("Unexpected token %s at position %d expected %s", token.Type.String(), i, e)
+			t.Errorf("%s %s", token.Type, exp[i])
+		} else {
+			fmt.Printf("%s (%s) == %s\n", token.Type, token.Lexeme, exp[i])
 		}
 	}
 }

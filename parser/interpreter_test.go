@@ -33,24 +33,28 @@ func TestInterpreter_SimpleArithmetic(t *testing.T) {
 	}
 }
 
-func TestEndToEnd_LexerParserInterpreter(t *testing.T) {
-	source := "1 + 2"
+func runLoxExpression(source string) (interface{}, error) {
 	lx := lexer.New(bytes.NewBufferString(source))
 	lexResult := lexer.Consume(lx)
 	if lexResult.Err != nil {
-		t.Fatalf("Lexer error: %v", lexResult.Err)
+		return nil, lexResult.Err
 	}
 
 	parser := New(lexResult.Tokens)
 	expr, err := parser.expression()
 	if err != nil {
-		t.Fatalf("Parser error: %v", err)
+		return nil, err
 	}
 
 	interpreter := Interpreter{}
-	result, err := interpreter.evaluate(expr)
+	return interpreter.evaluate(expr)
+}
+
+func TestEndToEnd_LexerParserInterpreter(t *testing.T) {
+	source := "1 + 2"
+	result, err := runLoxExpression(source)
 	if err != nil {
-		t.Fatalf("Interpreter error: %v", err)
+		t.Fatalf("Error: %v", err)
 	}
 
 	expected := float64(3)

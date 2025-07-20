@@ -37,86 +37,101 @@ func New(r io.Reader) *Lexer {
 }
 
 func (lx *Lexer) Next() Token {
-	lx.skipWhitespace()
-
 	if lx.err != nil {
 		return lx.Return(EOF)
 	}
 
-	// If we're at the beginning of the file, we need to read the first rune.
-	if lx.curPos == 0 {
-		lx.read()
-	}
+	// Skip whitespace first
+	lx.skipWhitespace()
 
 	switch lx.curRune {
 	case '(': // LEFT_PAREN
+		lx.read() // Advance past the token
 		return lx.Return(LEFT_PAREN)
 	case ')': // RIGHT_PAREN
+		lx.read() // Advance past the token
 		return lx.Return(RIGHT_PAREN)
 	case '{': // LEFT_BRACE
+		lx.read() // Advance past the token
 		return lx.Return(LEFT_BRACE)
 	case '}': // RIGHT_BRACE
+		lx.read() // Advance past the token
 		return lx.Return(RIGHT_BRACE)
 	case ',': // COMMA
+		lx.read() // Advance past the token
 		return lx.Return(COMMA)
 	case '.': // DOT
+		lx.read() // Advance past the token
 		return lx.Return(DOT)
 	case '-': // MINUS
+		lx.read() // Advance past the token
 		return lx.Return(MINUS)
 	case '+': // PLUS
+		lx.read() // Advance past the token
 		return lx.Return(PLUS)
 	case ';': // SEMICOLON
+		lx.read() // Advance past the token
 		return lx.Return(SEMICOLON)
 	case ':': // COLON
+		lx.read() // Advance past the token
 		return lx.Return(COLON)
 	case '?': // QUESTION_MARK
+		lx.read() // Advance past the token
 		return lx.Return(QUESTION_MARK)
 	case '/': // SLASH
 		if lx.match('/') {
 			for lx.curRune != '\n' {
-				if lx.atEnd() {
-					return lx.Return(EOF)
-				}
+				lx.read()
 				if lx.curRune == '\n' {
 					lx.line++
 				}
-				lx.read()
+				if lx.atEnd() {
+					return lx.Return(EOF)
+				}
 			}
+			return lx.Next()
+
 		} else {
+			lx.read() // Advance past the token
 			return lx.Return(SLASH)
 		}
 	case '*': // STAR
+		lx.read() // Advance past the token
 		return lx.Return(STAR)
 	case '!':
 		// BANG (handle "!=" after the switch)
 		if lx.match('=') {
 			return lx.Return(BANG_EQUAL)
 		}
+		lx.read() // Advance past the token
 		return lx.Return(BANG)
 	case '=':
 		// EQUAL (handle "==" after the switch)
 		if lx.match('=') {
 			return lx.Return(EQUAL_EQUAL)
 		}
+		lx.read() // Advance past the token
 		return lx.Return(EQUAL)
 	case '>':
 		// GREATER (handle ">=" after the switch)
 		if lx.match('=') {
 			return lx.Return(GREATER_EQUAL)
 		}
+		lx.read() // Advance past the token
 		return lx.Return(GREATER)
 	case '<':
 		// LESS (handle "<=" after the switch)
 		if lx.match('=') {
 			return lx.Return(LESS_EQUAL)
 		}
+		lx.read() // Advance past the token
 		return lx.Return(LESS)
 	case 0: // rune(0) when you hit EOF
 		return lx.Return(EOF)
 	}
 
 	if lx.curRune == '"' {
-		lx.read()
+		lx.read() // Advance past the opening quote
 		return lx.string()
 	}
 
@@ -146,6 +161,7 @@ func (lx *Lexer) Next() Token {
 		}
 
 		lx.sb.Reset()
+		// Read all characters of the identifier/keyword
 		for ; unicode.IsLetter(lx.curRune) || unicode.IsDigit(lx.curRune) || lx.curRune == '_'; lx.read() {
 			lx.sb.WriteRune(lx.curRune)
 		}
@@ -162,6 +178,7 @@ func (lx *Lexer) Next() Token {
 		}
 	}
 
+	lx.read() // Advance past the illegal character
 	return lx.Return(ILLEGAL)
 }
 
@@ -208,7 +225,7 @@ func (lx *Lexer) string() Token {
 		return lx.Return(EOF)
 	}
 
-	// consume the closing quote.
+	// Advance past the closing quote
 	lx.read()
 
 	return Token{
@@ -223,10 +240,13 @@ func (lx *Lexer) Err(m string) error {
 }
 
 func (lx *Lexer) skipWhitespace() {
-	// Optimization: Use a local variable for peeked rune to avoid repeated function calls
+	// If curRune is 0, we need to read the first character
+	if lx.curRune == 0 {
+		lx.read()
+	}
+
 	for {
-		r := lx.peek()
-		if !unicode.IsSpace(r) {
+		if !unicode.IsSpace(lx.curRune) {
 			break
 		}
 		lx.read()
