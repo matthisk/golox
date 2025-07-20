@@ -146,12 +146,14 @@ func (t TokenType) String() string {
 }
 
 type Pos struct {
+	Offset int
 	Line   int
 	Column int
 }
 
 type Token struct {
-	Type     TokenType
-	Lexeme   interface{}
-	Position int
+	Type      TokenType
+	Lexeme    interface{}
+	StartPos  Pos
+	EndPos    Pos
 }

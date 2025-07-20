@@ -17,7 +17,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "number literal",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: 42, Position: 0},
+				{Type: lexer.NUMBER, Lexeme: 42, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "42",
@@ -26,7 +26,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "string literal",
 			tokens: []lexer.Token{
-				{Type: lexer.STRING, Lexeme: "hello", Position: 0},
+				{Type: lexer.STRING, Lexeme: "hello", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "hello",
@@ -35,7 +35,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "true literal",
 			tokens: []lexer.Token{
-				{Type: lexer.TRUE, Lexeme: "true", Position: 0},
+				{Type: lexer.TRUE, Lexeme: "true", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "true",
@@ -44,7 +44,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "false literal",
 			tokens: []lexer.Token{
-				{Type: lexer.FALSE, Lexeme: "false", Position: 0},
+				{Type: lexer.FALSE, Lexeme: "false", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "false",
@@ -53,7 +53,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "nil literal",
 			tokens: []lexer.Token{
-				{Type: lexer.NIL, Lexeme: "nil", Position: 0},
+				{Type: lexer.NIL, Lexeme: "nil", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "nil",
@@ -62,7 +62,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "decimal number",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "3.14", Position: 0},
+				{Type: lexer.NUMBER, Lexeme: "3.14", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "3.14",
@@ -73,9 +73,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "simple grouping",
 			tokens: []lexer.Token{
-				{Type: lexer.LEFT_PAREN, Position: 0},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 1},
-				{Type: lexer.RIGHT_PAREN, Position: 2},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.RIGHT_PAREN, StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(group 5)",
@@ -84,11 +84,11 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "nested grouping",
 			tokens: []lexer.Token{
-				{Type: lexer.LEFT_PAREN, Position: 0},
-				{Type: lexer.LEFT_PAREN, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "10", Position: 2},
-				{Type: lexer.RIGHT_PAREN, Position: 3},
-				{Type: lexer.RIGHT_PAREN, Position: 4},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "10", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.RIGHT_PAREN, StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
+				{Type: lexer.RIGHT_PAREN, StartPos: lexer.Pos{Offset: 4, Line: 1, Column: 5}},
 				{Type: lexer.EOF},
 			},
 			expected: "(group (group 10))",
@@ -99,8 +99,8 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "unary minus",
 			tokens: []lexer.Token{
-				{Type: lexer.MINUS, Position: 0},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 1},
+				{Type: lexer.MINUS, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
 				{Type: lexer.EOF},
 			},
 			expected: "(MINUS 5)",
@@ -109,8 +109,8 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "unary bang",
 			tokens: []lexer.Token{
-				{Type: lexer.BANG, Position: 0},
-				{Type: lexer.TRUE, Lexeme: "true", Position: 1},
+				{Type: lexer.BANG, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.TRUE, Lexeme: "true", StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
 				{Type: lexer.EOF},
 			},
 			expected: "(BANG true)",
@@ -119,9 +119,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "double unary",
 			tokens: []lexer.Token{
-				{Type: lexer.MINUS, Position: 0},
-				{Type: lexer.MINUS, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
+				{Type: lexer.MINUS, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.MINUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(MINUS (MINUS 3))",
@@ -130,10 +130,10 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "unary with grouping",
 			tokens: []lexer.Token{
-				{Type: lexer.BANG, Position: 0},
-				{Type: lexer.LEFT_PAREN, Position: 1},
-				{Type: lexer.FALSE, Lexeme: "false", Position: 2},
-				{Type: lexer.RIGHT_PAREN, Position: 3},
+				{Type: lexer.BANG, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.FALSE, Lexeme: "false", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.RIGHT_PAREN, StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
 				{Type: lexer.EOF},
 			},
 			expected: "(BANG (group false))",
@@ -144,9 +144,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "simple addition",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 0},
-				{Type: lexer.PLUS, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(PLUS 5 3)",
@@ -155,9 +155,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "simple subtraction",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "10", Position: 0},
-				{Type: lexer.MINUS, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "4", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "10", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.MINUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "4", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(MINUS 10 4)",
@@ -166,9 +166,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "simple multiplication",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "6", Position: 0},
-				{Type: lexer.STAR, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "7", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "6", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.STAR, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "7", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(STAR 6 7)",
@@ -177,9 +177,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "simple division",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "8", Position: 0},
-				{Type: lexer.SLASH, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "2", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "8", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.SLASH, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "2", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(SLASH 8 2)",
@@ -190,9 +190,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "equality",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 0},
-				{Type: lexer.EQUAL_EQUAL, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.EQUAL_EQUAL, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(EQUAL_EQUAL 5 5)",
@@ -201,9 +201,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "inequality",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 0},
-				{Type: lexer.BANG_EQUAL, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.BANG_EQUAL, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(BANG_EQUAL 5 3)",
@@ -212,9 +212,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "less than",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 0},
-				{Type: lexer.LESS, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.LESS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(LESS 3 5)",
@@ -223,9 +223,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "less than or equal",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 0},
-				{Type: lexer.LESS_EQUAL, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.LESS_EQUAL, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(LESS_EQUAL 3 5)",
@@ -234,9 +234,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "greater than",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "7", Position: 0},
-				{Type: lexer.GREATER, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "7", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.GREATER, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(GREATER 7 3)",
@@ -245,9 +245,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "greater than or equal",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "7", Position: 0},
-				{Type: lexer.GREATER_EQUAL, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
+				{Type: lexer.NUMBER, Lexeme: "7", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.GREATER_EQUAL, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(GREATER_EQUAL 7 3)",
@@ -258,11 +258,11 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "addition and multiplication",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "2", Position: 0},
-				{Type: lexer.PLUS, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
-				{Type: lexer.STAR, Position: 3},
-				{Type: lexer.NUMBER, Lexeme: "4", Position: 4},
+				{Type: lexer.NUMBER, Lexeme: "2", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.STAR, StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
+				{Type: lexer.NUMBER, Lexeme: "4", StartPos: lexer.Pos{Offset: 4, Line: 1, Column: 5}},
 				{Type: lexer.EOF},
 			},
 			expected: "(PLUS 2 (STAR 3 4))",
@@ -271,11 +271,11 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "multiplication and addition",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "2", Position: 0},
-				{Type: lexer.STAR, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
-				{Type: lexer.PLUS, Position: 3},
-				{Type: lexer.NUMBER, Lexeme: "4", Position: 4},
+				{Type: lexer.NUMBER, Lexeme: "2", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.STAR, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
+				{Type: lexer.NUMBER, Lexeme: "4", StartPos: lexer.Pos{Offset: 4, Line: 1, Column: 5}},
 				{Type: lexer.EOF},
 			},
 			expected: "(PLUS (STAR 2 3) 4)",
@@ -284,13 +284,13 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "comparison and arithmetic",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 0},
-				{Type: lexer.PLUS, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 2},
-				{Type: lexer.GREATER, Position: 3},
-				{Type: lexer.NUMBER, Lexeme: "2", Position: 4},
-				{Type: lexer.STAR, Position: 5},
-				{Type: lexer.NUMBER, Lexeme: "4", Position: 6},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.GREATER, StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
+				{Type: lexer.NUMBER, Lexeme: "2", StartPos: lexer.Pos{Offset: 4, Line: 1, Column: 5}},
+				{Type: lexer.STAR, StartPos: lexer.Pos{Offset: 5, Line: 1, Column: 6}},
+				{Type: lexer.NUMBER, Lexeme: "4", StartPos: lexer.Pos{Offset: 6, Line: 1, Column: 7}},
 				{Type: lexer.EOF},
 			},
 			expected: "(GREATER (PLUS 5 3) (STAR 2 4))",
@@ -301,13 +301,13 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "grouping affects precedence",
 			tokens: []lexer.Token{
-				{Type: lexer.LEFT_PAREN, Position: 0},
-				{Type: lexer.NUMBER, Lexeme: "2", Position: 1},
-				{Type: lexer.PLUS, Position: 2},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 3},
-				{Type: lexer.RIGHT_PAREN, Position: 4},
-				{Type: lexer.STAR, Position: 5},
-				{Type: lexer.NUMBER, Lexeme: "4", Position: 6},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "2", StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
+				{Type: lexer.RIGHT_PAREN, StartPos: lexer.Pos{Offset: 4, Line: 1, Column: 5}},
+				{Type: lexer.STAR, StartPos: lexer.Pos{Offset: 5, Line: 1, Column: 6}},
+				{Type: lexer.NUMBER, Lexeme: "4", StartPos: lexer.Pos{Offset: 6, Line: 1, Column: 7}},
 				{Type: lexer.EOF},
 			},
 			expected: "(STAR (group (PLUS 2 3)) 4)",
@@ -316,14 +316,14 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "complex nested expression",
 			tokens: []lexer.Token{ // - ( 5 + 3 ) * 2
-				{Type: lexer.MINUS, Position: 0},
-				{Type: lexer.LEFT_PAREN, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 2},
-				{Type: lexer.PLUS, Position: 3},
-				{Type: lexer.NUMBER, Lexeme: "3", Position: 4},
-				{Type: lexer.RIGHT_PAREN, Position: 5},
-				{Type: lexer.STAR, Position: 6},
-				{Type: lexer.NUMBER, Lexeme: "2", Position: 7},
+				{Type: lexer.MINUS, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 3, Line: 1, Column: 4}},
+				{Type: lexer.NUMBER, Lexeme: "3", StartPos: lexer.Pos{Offset: 4, Line: 1, Column: 5}},
+				{Type: lexer.RIGHT_PAREN, StartPos: lexer.Pos{Offset: 5, Line: 1, Column: 6}},
+				{Type: lexer.STAR, StartPos: lexer.Pos{Offset: 6, Line: 1, Column: 7}},
+				{Type: lexer.NUMBER, Lexeme: "2", StartPos: lexer.Pos{Offset: 7, Line: 1, Column: 8}},
 				{Type: lexer.EOF},
 			},
 			expected: "(STAR (MINUS (group (PLUS 5 3))) 2)",
@@ -334,9 +334,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "string concatenation",
 			tokens: []lexer.Token{
-				{Type: lexer.STRING, Lexeme: "hello", Position: 0},
-				{Type: lexer.PLUS, Position: 1},
-				{Type: lexer.STRING, Lexeme: "world", Position: 2},
+				{Type: lexer.STRING, Lexeme: "hello", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.STRING, Lexeme: "world", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(PLUS hello world)",
@@ -345,9 +345,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "boolean comparison",
 			tokens: []lexer.Token{
-				{Type: lexer.TRUE, Lexeme: "true", Position: 0},
-				{Type: lexer.EQUAL_EQUAL, Position: 1},
-				{Type: lexer.FALSE, Lexeme: "false", Position: 2},
+				{Type: lexer.TRUE, Lexeme: "true", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.EQUAL_EQUAL, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.FALSE, Lexeme: "false", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(EQUAL_EQUAL true false)",
@@ -356,9 +356,9 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "nil comparison",
 			tokens: []lexer.Token{
-				{Type: lexer.NIL, Lexeme: "nil", Position: 0},
-				{Type: lexer.BANG_EQUAL, Position: 1},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 2},
+				{Type: lexer.NIL, Lexeme: "nil", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.BANG_EQUAL, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 2, Line: 1, Column: 3}},
 				{Type: lexer.EOF},
 			},
 			expected: "(BANG_EQUAL nil 5)",
@@ -369,8 +369,8 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "missing closing parenthesis",
 			tokens: []lexer.Token{
-				{Type: lexer.LEFT_PAREN, Position: 0},
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 1},
+				{Type: lexer.LEFT_PAREN, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
 				{Type: lexer.EOF},
 			},
 			expected: "",
@@ -379,8 +379,8 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "missing operand",
 			tokens: []lexer.Token{
-				{Type: lexer.NUMBER, Lexeme: "5", Position: 0},
-				{Type: lexer.PLUS, Position: 1},
+				{Type: lexer.NUMBER, Lexeme: "5", StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.PLUS, StartPos: lexer.Pos{Offset: 1, Line: 1, Column: 2}},
 				{Type: lexer.EOF},
 			},
 			expected: "",
@@ -389,7 +389,7 @@ func TestParserTD(t *testing.T) {
 		{
 			name: "invalid token",
 			tokens: []lexer.Token{
-				{Type: lexer.SEMICOLON, Position: 0},
+				{Type: lexer.SEMICOLON, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.EOF},
 			},
 			expected: "",
