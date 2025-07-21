@@ -38,14 +38,14 @@ func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 			return nil, err
 		}
 
-		return l.(float64) + r.(float64), nil
+		return l.(float64) - r.(float64), nil
 	case lexer.SLASH:
 		err := isNumber(node.token, l, r)
 		if err != nil {
 			return nil, err
 		}
 
-		return l.(float64) + r.(float64), nil
+		return l.(float64) / r.(float64), nil
 	case lexer.STAR:
 		err := isNumber(node.token, l, r)
 		if err != nil {
@@ -65,13 +65,26 @@ func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 		return l.(float64) < r.(float64), nil
 	case lexer.LESS_EQUAL:
 		return l.(float64) <= r.(float64), nil
+	default:
+		panic("unhandled default case")
 	}
 
 	return nil, fmt.Errorf("unsupported binary operation or operand types")
 }
 
 func (i Interpreter) VisitLiteral(node *Literal) (interface{}, error) {
-	return node.token.Lexeme, nil
+	switch node.token.Type {
+	case lexer.TRUE:
+		return true, nil
+	case lexer.FALSE:
+		return false, nil
+	case lexer.NIL:
+		return nil, nil
+	case lexer.NUMBER, lexer.STRING:
+		return node.token.Lexeme, nil
+	default:
+		return node.token.Lexeme, nil
+	}
 }
 
 func (i Interpreter) VisitUnary(node *Unary) (interface{}, error) {
@@ -99,7 +112,7 @@ func (i Interpreter) VisitComma(node *Comma) (interface{}, error) {
 }
 
 func (i Interpreter) VisitGrouping(node *Grouping) (interface{}, error) {
-	return i.evaluate(node)
+	return i.evaluate(node.expr)
 }
 
 func (i Interpreter) VisitTernary(node *Ternary) (interface{}, error) {

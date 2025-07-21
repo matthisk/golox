@@ -4,20 +4,18 @@ import (
 	"github.com/matthisk/lox/lexer"
 )
 
-/**
-Grammar:
-
-expression → literal
-		   | unary
-		   | binary
-		   | grouping ;
-
-literal        → NUMBER | STRING | "true" | "false" | "nil" ;
-grouping       → "(" expression ")" ;
-unary          → ( "-" | "!" ) expression ;
-binary         → expression operator expression ;
-operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
-               | "+"  | "-"  | "*" | "/" ;
+/*
+expression     → comma ;
+comma          -> ternary ( "," ternary )*;
+ternary        -> equality ("?" ternary ":" ternary)? ;
+equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term           → factor ( ( "-" | "+" ) factor )* ;
+factor         → unary ( ( "/" | "*" ) unary )* ;
+unary          → ( "!" | "-" ) unary
+               | primary ;
+primary        → NUMBER | STRING | "true" | "false" | "nil"
+               | "(" expression ")" ;
 */
 
 type Visitor interface {
@@ -34,7 +32,24 @@ type Expr interface {
 }
 
 type BaseNode struct {
-	pos lexer.Pos
+	startPos lexer.Pos
+	endPos   lexer.Pos
+}
+
+// GetStartPos returns the start position of the BaseNode
+func (b *BaseNode) GetStartPos() lexer.Pos {
+	return b.startPos
+}
+
+// GetEndPos returns the end position of the BaseNode
+func (b *BaseNode) GetEndPos() lexer.Pos {
+	return b.endPos
+}
+
+// SetPos sets both start and end positions of the BaseNode
+func (b *BaseNode) SetPos(start, end lexer.Pos) {
+	b.startPos = start
+	b.endPos = end
 }
 
 type Binary struct {
@@ -95,4 +110,62 @@ type Literal struct {
 
 func (b *Literal) Accept(visitor Visitor) (interface{}, error) {
 	return visitor.VisitLiteral(b)
+}
+
+// Helper functions for working with expression positions
+
+// GetExprStartPos returns the start position of any expression
+func GetExprStartPos(expr Expr) lexer.Pos {
+	switch e := expr.(type) {
+	case *Binary:
+		return e.GetStartPos()
+	case *Unary:
+		return e.GetStartPos()
+	case *Comma:
+		return e.GetStartPos()
+	case *Ternary:
+		return e.GetStartPos()
+	case *Grouping:
+		return e.GetStartPos()
+	case *Literal:
+		return e.GetStartPos()
+	default:
+		return lexer.Pos{}
+	}
+}
+
+// GetExprEndPos returns the end position of any expression
+func GetExprEndPos(expr Expr) lexer.Pos {
+	switch e := expr.(type) {
+	case *Binary:
+		return e.GetEndPos()
+	case *Unary:
+		return e.GetEndPos()
+	case *Comma:
+		return e.GetEndPos()
+	case *Ternary:
+		return e.GetEndPos()
+	case *Grouping:
+		return e.GetEndPos()
+	case *Literal:
+		return e.GetEndPos()
+	default:
+		return lexer.Pos{}
+	}
+}
+
+// NewBaseNodeSpanning creates a BaseNode that spans from the start of one position to the end of another
+func NewBaseNodeSpanning(start, end lexer.Pos) BaseNode {
+	return BaseNode{
+		startPos: start,
+		endPos:   end,
+	}
+}
+
+// NewBaseNodeFromExprs creates a BaseNode that spans from the start of the first expression to the end of the last expression
+func NewBaseNodeFromExprs(first, last Expr) BaseNode {
+	return BaseNode{
+		startPos: GetExprStartPos(first),
+		endPos:   GetExprEndPos(last),
+	}
 }

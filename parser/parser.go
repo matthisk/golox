@@ -78,7 +78,7 @@ func (p *Parser) comma() (Expr, error) {
 		}
 
 		expr = &Comma{
-			BaseNode: BaseNode{},
+			BaseNode: NewBaseNodeFromExprs(expr, right),
 			left:     expr,
 			right:    right,
 		}
@@ -106,7 +106,7 @@ func (p *Parser) ternary() (Expr, error) {
 			}
 
 			expr = &Ternary{
-				BaseNode: BaseNode{},
+				BaseNode: NewBaseNodeFromExprs(expr, right),
 				left:     expr,
 				middle:   middle,
 				right:    right,
@@ -133,7 +133,7 @@ func (p *Parser) equality() (Expr, error) {
 			return nil, err
 		}
 		expr = &Binary{
-			BaseNode: BaseNode{},
+			BaseNode: NewBaseNodeFromExprs(expr, right),
 			left:     expr,
 			token:    operator.Type,
 			right:    right,
@@ -156,7 +156,7 @@ func (p *Parser) comparison() (Expr, error) {
 			return nil, err
 		}
 		expr = &Binary{
-			BaseNode: BaseNode{},
+			BaseNode: NewBaseNodeFromExprs(expr, right),
 			left:     expr,
 			token:    operator.Type,
 			right:    right,
@@ -179,7 +179,7 @@ func (p *Parser) term() (Expr, error) {
 			return nil, err
 		}
 		expr = &Binary{
-			BaseNode: BaseNode{},
+			BaseNode: NewBaseNodeFromExprs(expr, right),
 			left:     expr,
 			token:    operator.Type,
 			right:    right,
@@ -202,7 +202,7 @@ func (p *Parser) factor() (Expr, error) {
 			return nil, err
 		}
 		expr = &Binary{
-			BaseNode: BaseNode{},
+			BaseNode: NewBaseNodeFromExprs(expr, right),
 			left:     expr,
 			token:    operator.Type,
 			right:    right,
@@ -217,7 +217,10 @@ func (p *Parser) unary() (Expr, error) {
 		operator := p.previous()
 		right, _ := p.unary()
 		return &Unary{
-			BaseNode: BaseNode{},
+			BaseNode: BaseNode{
+				startPos: operator.StartPos,
+				endPos:   GetExprEndPos(right),
+			},
 			token:    operator.Type,
 			expr:     right,
 		}, nil
@@ -228,9 +231,13 @@ func (p *Parser) unary() (Expr, error) {
 
 func (p *Parser) primary() (Expr, error) {
 	if p.match(lexer.NUMBER, lexer.STRING, lexer.FALSE, lexer.TRUE, lexer.NIL) {
+		token := p.previous()
 		return &Literal{
-			BaseNode: BaseNode{},
-			token:    p.previous(),
+			BaseNode: BaseNode{
+				startPos: token.StartPos,
+				endPos:   token.EndPos,
+			},
+			token: token,
 		}, nil
 	}
 
@@ -240,9 +247,14 @@ func (p *Parser) primary() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
+		leftParen := p.tokens[p.index-1]
+		rightParen := p.previous()
 		return &Grouping{
-			BaseNode: BaseNode{},
-			expr:     expr,
+			BaseNode: BaseNode{
+				startPos: leftParen.StartPos,
+				endPos:   rightParen.EndPos,
+			},
+			expr: expr,
 		}, nil
 	}
 

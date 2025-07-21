@@ -91,7 +91,8 @@ func (lx *Lexer) Next() Token {
 		lx.read() // Advance past the token
 		return lx.makeToken(QUESTION_MARK, startPos)
 	case '/': // SLASH
-		if lx.match('/') {
+		lx.read()
+		if lx.curRune == '/' {
 			for lx.curRune != '\n' {
 				lx.read()
 				if lx.atEnd() {
@@ -101,39 +102,42 @@ func (lx *Lexer) Next() Token {
 			return lx.Next()
 
 		} else {
-			lx.read() // Advance past the token
 			return lx.makeToken(SLASH, startPos)
 		}
 	case '*': // STAR
 		lx.read() // Advance past the token
 		return lx.makeToken(STAR, startPos)
 	case '!':
+		lx.read()
 		// BANG (handle "!=" after the switch)
-		if lx.match('=') {
+		if lx.curRune == '=' {
+			lx.read()
 			return lx.makeToken(BANG_EQUAL, startPos)
 		}
-		lx.read() // Advance past the token
 		return lx.makeToken(BANG, startPos)
 	case '=':
+		lx.read()
 		// EQUAL (handle "==" after the switch)
-		if lx.match('=') {
+		if lx.curRune == '=' {
+			lx.read()
 			return lx.makeToken(EQUAL_EQUAL, startPos)
 		}
-		lx.read() // Advance past the token
 		return lx.makeToken(EQUAL, startPos)
 	case '>':
+		lx.read()
 		// GREATER (handle ">=" after the switch)
-		if lx.match('=') {
+		if lx.curRune == '=' {
+			lx.read()
 			return lx.makeToken(GREATER_EQUAL, startPos)
 		}
-		lx.read() // Advance past the token
 		return lx.makeToken(GREATER, startPos)
 	case '<':
+		lx.read()
 		// LESS (handle "<=" after the switch)
-		if lx.match('=') {
+		if lx.curRune == '=' {
+			lx.read()
 			return lx.makeToken(LESS_EQUAL, startPos)
 		}
-		lx.read() // Advance past the token
 		return lx.makeToken(LESS, startPos)
 	case 0: // rune(0) when you hit EOF
 		return lx.makeToken(EOF, startPos)
