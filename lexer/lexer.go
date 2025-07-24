@@ -36,8 +36,6 @@ func New(r io.Reader) *Lexer {
 		line:   1,
 		column: 0, // start at 0 so the first read positions this at 1.
 	}
-	// Read the first rune from the buffer to start the lexing process.
-	lx.read()
 	return lx
 }
 
@@ -45,6 +43,8 @@ func (lx *Lexer) Next() Token {
 	if lx.err != nil {
 		return lx.Return(EOF)
 	}
+
+	lx.read()
 
 	// Skip whitespace first
 	lx.skipWhitespace()
@@ -58,84 +58,59 @@ func (lx *Lexer) Next() Token {
 
 	switch lx.curRune {
 	case '(': // LEFT_PAREN
-		lx.read() // Advance past the token
 		return lx.makeToken(LEFT_PAREN, startPos)
 	case ')': // RIGHT_PAREN
-		lx.read() // Advance past the token
 		return lx.makeToken(RIGHT_PAREN, startPos)
 	case '{': // LEFT_BRACE
-		lx.read() // Advance past the token
 		return lx.makeToken(LEFT_BRACE, startPos)
 	case '}': // RIGHT_BRACE
-		lx.read() // Advance past the token
 		return lx.makeToken(RIGHT_BRACE, startPos)
 	case ',': // COMMA
-		lx.read() // Advance past the token
 		return lx.makeToken(COMMA, startPos)
 	case '.': // DOT
-		lx.read() // Advance past the token
 		return lx.makeToken(DOT, startPos)
 	case '-': // MINUS
-		lx.read() // Advance past the token
 		return lx.makeToken(MINUS, startPos)
 	case '+': // PLUS
-		lx.read() // Advance past the token
-		return lx.makeToken(PLUS, startPos)
 	case ';': // SEMICOLON
-		lx.read() // Advance past the token
 		return lx.makeToken(SEMICOLON, startPos)
 	case ':': // COLON
-		lx.read() // Advance past the token
 		return lx.makeToken(COLON, startPos)
 	case '?': // QUESTION_MARK
-		lx.read() // Advance past the token
 		return lx.makeToken(QUESTION_MARK, startPos)
 	case '/': // SLASH
-		lx.read()
-		if lx.curRune == '/' {
-			for lx.curRune != '\n' {
+		if lx.match('/') {
+			for lx.peek() != '\n' && !lx.atEnd() {
 				lx.read()
-				if lx.atEnd() {
-					return lx.makeToken(EOF, startPos)
-				}
 			}
 			return lx.Next()
-
 		} else {
 			return lx.makeToken(SLASH, startPos)
 		}
 	case '*': // STAR
-		lx.read() // Advance past the token
 		return lx.makeToken(STAR, startPos)
 	case '!':
-		lx.read()
 		// BANG (handle "!=" after the switch)
-		if lx.curRune == '=' {
-			lx.read()
+		if lx.match('=') {
 			return lx.makeToken(BANG_EQUAL, startPos)
 		}
 		return lx.makeToken(BANG, startPos)
 	case '=':
-		lx.read()
 		// EQUAL (handle "==" after the switch)
-		if lx.curRune == '=' {
-			lx.read()
+		if lx.match('=') {
 			return lx.makeToken(EQUAL_EQUAL, startPos)
 		}
 		return lx.makeToken(EQUAL, startPos)
 	case '>':
-		lx.read()
 		// GREATER (handle ">=" after the switch)
-		if lx.curRune == '=' {
+		if lx.match('=') {
 			lx.read()
 			return lx.makeToken(GREATER_EQUAL, startPos)
 		}
 		return lx.makeToken(GREATER, startPos)
 	case '<':
-		lx.read()
 		// LESS (handle "<=" after the switch)
-		if lx.curRune == '=' {
-			lx.read()
+		if lx.match('=') {
 			return lx.makeToken(LESS_EQUAL, startPos)
 		}
 		return lx.makeToken(LESS, startPos)
@@ -144,7 +119,6 @@ func (lx *Lexer) Next() Token {
 	}
 
 	if lx.curRune == '"' {
-		lx.read() // Advance past the opening quote
 		return lx.string(startPos)
 	}
 
@@ -174,8 +148,10 @@ func (lx *Lexer) Next() Token {
 		}
 
 		lx.sb.Reset()
+		lx.sb.WriteRune(lx.curRune)
 		// Read all characters of the identifier/keyword
-		for ; unicode.IsLetter(lx.curRune) || unicode.IsDigit(lx.curRune) || lx.curRune == '_'; lx.read() {
+		for unicode.IsLetter(lx.peek()) || unicode.IsDigit(lx.peek()) || lx.peek() == '_' {
+			lx.read()
 			lx.sb.WriteRune(lx.curRune)
 		}
 		lexeme := lx.sb.String()
@@ -189,9 +165,9 @@ func (lx *Lexer) Next() Token {
 			Lexeme:   lexeme,
 			StartPos: startPos,
 			EndPos: Pos{
-				Offset: lx.curPos,
+				Offset: lx.curPos + 1,
 				Line:   lx.line,
-				Column: lx.column,
+				Column: lx.column + 1,
 			},
 		}
 	}
@@ -202,14 +178,21 @@ func (lx *Lexer) Next() Token {
 
 func (lx *Lexer) number(startPos Pos) Token {
 	lx.sb.Reset()
-	for ; unicode.IsDigit(lx.curRune); lx.read() {
+
+	lx.sb.WriteRune(lx.curRune)
+
+	for unicode.IsDigit(lx.peek()) {
+		lx.read()
 		lx.sb.WriteRune(lx.curRune)
 	}
 
-	if lx.curRune == '.' && unicode.IsDigit(lx.peek()) {
-		lx.sb.WriteRune('.')
+	r1, r2 := lx.peek2()
+	if r1 == '.' && unicode.IsDigit(r2) {
 		lx.read()
-		for ; unicode.IsDigit(lx.curRune); lx.read() {
+		lx.sb.WriteRune('.')
+
+		for unicode.IsDigit(lx.peek()) {
+			lx.read()
 			lx.sb.WriteRune(lx.curRune)
 		}
 	}
@@ -235,12 +218,12 @@ func (lx *Lexer) number(startPos Pos) Token {
 
 func (lx *Lexer) string(startPos Pos) Token {
 	lx.sb.Reset()
-	for lx.curRune != '"' && !lx.atEnd() {
+	for lx.peek() != '"' && !lx.atEnd() {
+		lx.read()
 		if lx.curRune == '\n' {
 			lx.line++
 		}
 		lx.sb.WriteRune(lx.curRune)
-		lx.read()
 	}
 
 	if lx.atEnd() {
@@ -256,9 +239,9 @@ func (lx *Lexer) string(startPos Pos) Token {
 		Lexeme:   lx.sb.String(),
 		StartPos: startPos,
 		EndPos: Pos{
-			Offset: lx.curPos,
+			Offset: lx.curPos + 1,
 			Line:   lx.line,
-			Column: lx.column,
+			Column: lx.column + 1,
 		},
 	}
 }
@@ -299,9 +282,9 @@ func (lx *Lexer) makeToken(token TokenType, startPos Pos) Token {
 		Lexeme:   "",
 		StartPos: startPos,
 		EndPos: Pos{
-			Offset: lx.curPos,
+			Offset: lx.curPos + 1,
 			Line:   lx.line,
-			Column: lx.column,
+			Column: lx.column + 1,
 		},
 	}
 }
@@ -345,6 +328,21 @@ func (lx *Lexer) peek() rune {
 	return readRune
 }
 
+func (lx *Lexer) peek2() (rune, rune) {
+	r1, r2, err := peek2Rune(lx.r)
+
+	if err == io.EOF {
+		lx.curRune = 0
+		return 0, 0
+	}
+	if err != nil {
+		lx.err = lx.Err("Unexpected character.")
+		return 0, 0
+	}
+
+	return r1, r2
+}
+
 // match compares rune to the next rune, consumes rune from buffer in case of match
 func (lx *Lexer) match(r rune) bool {
 	peekRune, err := peekRune(lx.r)
@@ -380,6 +378,54 @@ func peekRune(r *bufio.Reader) (rune, error) {
 
 	// Pretty sure we can assume EOF if we get this far
 	return -1, io.EOF
+}
+
+func peek2Rune(r *bufio.Reader) (rune1, rune2 rune, err error) {
+	// We request to peek up to 8 bytes. This is the maximum possible size for two
+	// UTF-8 encoded runes, as each can be up to 4 bytes long.
+	peekedBytes, err := r.Peek(8)
+
+	// The behavior of bufio.Reader.Peek is to return an error (often io.EOF) if
+	// it cannot read the full number of requested bytes. However, it still returns
+	// the bytes it *was* able to read before the error occurred. We must handle this.
+	if err != nil {
+		if err == io.EOF && len(peekedBytes) == 0 {
+			return 0, 0, io.EOF
+		}
+		if err != io.EOF {
+			return 0, 0, err
+		}
+	}
+
+	// Double-check if we have any bytes to process. This handles the case where
+	// Peek returns a nil error but also zero bytes (unlikely but possible).
+	if len(peekedBytes) == 0 {
+		return 0, 0, io.EOF
+	}
+
+	// Decode the first rune from the beginning of our peeked byte slice.
+	// utf8.DecodeRune returns the rune and its byte size.
+	r1, size1 := utf8.DecodeRune(peekedBytes)
+	if r1 == utf8.RuneError {
+		// If the bytes do not form a valid UTF-8 sequence, DecodeRune returns
+		// RuneError and a size of 1. We will treat it as a single-byte character
+		// to ensure the logic proceeds.
+		size1 = 1
+	}
+
+	// Check if there are any bytes remaining in our peeked slice after accounting
+	// for the first rune's size.
+	if len(peekedBytes) > size1 {
+		// If yes, there's at least part of a second rune available. Decode it.
+		// The second return value (size2) is ignored as we don't need it.
+		r2, _ := utf8.DecodeRune(peekedBytes[size1:])
+		return r1, r2, nil
+	}
+
+	// If we've reached this point, it means we successfully peeked exactly one rune
+	// at the very end of the input. As per the function's contract, we return
+	// the first rune, a zero value for the second, and no error.
+	return r1, 0, nil
 }
 
 func Consume(lx *Lexer) Lex {

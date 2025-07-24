@@ -37,7 +37,7 @@ func TestLexer(t *testing.T) {
 
 		e := strings.TrimSpace(strings.Split(exp[i], "/")[0])
 		if e != token.Type.String() {
-			t.Errorf("%s %s", token.Type, exp[i])
+			t.Errorf("%d %s %s", i, token.Type, exp[i])
 		}
 	}
 
@@ -258,7 +258,7 @@ func TestScanNumber(t *testing.T) {
 				t.Errorf("Expected to scan NUMBER found %s", token.Type)
 			}
 			if token.Lexeme != tt.expected {
-				t.Errorf("Expected lexeme %s found %s", tt.expected, token.Lexeme)
+				t.Errorf("Expected lexeme %f found %f", tt.expected, token.Lexeme)
 			}
 		})
 	}
