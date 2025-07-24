@@ -431,3 +431,51 @@ func TestParserTD(t *testing.T) {
 		})
 	}
 }
+
+func TestParserStatementsTD(t *testing.T) {
+	tests := []struct {
+		name     string
+		tokens   []lexer.Token
+		expected string
+		wantErr  bool
+	}{
+		// Literal tests
+		{
+			name: "print statement",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: 42},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print 42;",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := New(tt.tokens)
+			stmt, err := parser.statement()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			result, err2 := Print(stmt)
+			if err2 != nil {
+				t.Fatalf("Unexpected error: %v", err2)
+			}
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}

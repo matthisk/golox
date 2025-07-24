@@ -72,6 +72,7 @@ func (lx *Lexer) Next() Token {
 	case '-': // MINUS
 		return lx.makeToken(MINUS, startPos)
 	case '+': // PLUS
+		return lx.makeToken(PLUS, startPos)
 	case ';': // SEMICOLON
 		return lx.makeToken(SEMICOLON, startPos)
 	case ':': // COLON

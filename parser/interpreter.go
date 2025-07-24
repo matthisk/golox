@@ -9,6 +9,16 @@ import (
 type Interpreter struct {
 }
 
+func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 	l, err := i.evaluate(node.left)
 	if err != nil {

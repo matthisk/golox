@@ -4,6 +4,22 @@ import "fmt"
 
 type ExprPrinter struct{}
 
+func (e ExprPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
+	expr, err := node.expr.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("print %s;", expr), nil
+}
+
+func (e ExprPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
+	expr, err := node.expr.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("%s;", expr), nil
+}
+
 func (e ExprPrinter) VisitBinary(node *Binary) (interface{}, error) {
 	left, err := node.left.Accept(e)
 	if err != nil {

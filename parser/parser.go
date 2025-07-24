@@ -7,6 +7,13 @@ import (
 )
 
 /*
+program     → statement* EOF ;
+
+statement   -> exprStmt | printStmt;
+
+exprStmt    -> expression ";";
+printStmt   -> "print" expression ";";
+
 expression     → comma ;
 comma          -> ternary ( "," ternary )*;
 ternary        -> equality ("?" ternary ":" ternary)? ;
@@ -33,8 +40,65 @@ func New(toks []lexer.Token) *Parser {
 	}
 }
 
-func (p *Parser) Parse() (Expr, error) {
-	return p.expression()
+func (p *Parser) Parse() ([]Stmt, error) {
+	return p.statements()
+}
+
+func (p *Parser) statements() ([]Stmt, error) {
+	var result []Stmt
+
+	for !p.atEnd() {
+		stmt, err := p.statement()
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, stmt)
+	}
+
+	return result, nil
+}
+
+func (p *Parser) statement() (Stmt, error) {
+	if p.match(lexer.PRINT) {
+		return p.printStatement()
+	}
+
+	return p.exprStatement()
+}
+
+func (p *Parser) printStatement() (Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.consume(lexer.SEMICOLON, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &PrintStmt{
+		BaseNode: BaseNode{},
+		expr:     expr,
+	}, nil
+}
+
+func (p *Parser) exprStatement() (Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.consume(lexer.SEMICOLON, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ExprStmt{
+		BaseNode: BaseNode{},
+		expr:     expr,
+	}, nil
 }
 
 func (p *Parser) synchronize() {
@@ -221,8 +285,8 @@ func (p *Parser) unary() (Expr, error) {
 				startPos: operator.StartPos,
 				endPos:   GetExprEndPos(right),
 			},
-			token:    operator.Type,
-			expr:     right,
+			token: operator.Type,
+			expr:  right,
 		}, nil
 	}
 

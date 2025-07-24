@@ -19,12 +19,36 @@ primary        → NUMBER | STRING | "true" | "false" | "nil"
 */
 
 type Visitor interface {
+	VisitPrintStmt(node *PrintStmt) (interface{}, error)
+	VisitExprStmt(node *ExprStmt) (interface{}, error)
 	VisitBinary(node *Binary) (interface{}, error)
 	VisitLiteral(node *Literal) (interface{}, error)
 	VisitUnary(node *Unary) (interface{}, error)
 	VisitComma(node *Comma) (interface{}, error)
 	VisitGrouping(node *Grouping) (interface{}, error)
 	VisitTernary(b *Ternary) (interface{}, error)
+}
+
+type Stmt interface {
+	Accept(v Visitor) (interface{}, error)
+}
+
+type ExprStmt struct {
+	BaseNode
+	expr Expr
+}
+
+func (e *ExprStmt) Accept(v Visitor) (interface{}, error) {
+	return v.VisitExprStmt(e)
+}
+
+type PrintStmt struct {
+	BaseNode
+	expr Expr
+}
+
+func (p *PrintStmt) Accept(v Visitor) (interface{}, error) {
+	return v.VisitPrintStmt(p)
 }
 
 type Expr interface {
