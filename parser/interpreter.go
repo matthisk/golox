@@ -16,19 +16,44 @@ func (p DefaultPrinter) Print(value interface{}) {
 	fmt.Println(value)
 }
 
+type Environment struct {
+	values map[string]interface{}
+}
+
+func NewEnvironment() *Environment {
+	return &Environment{
+		values: make(map[string]interface{}),
+	}
+}
+
+func (e *Environment) Define(name string, val interface{}) {
+	e.values[name] = val
+}
+
+func (e *Environment) Get(name string) (interface{}, error) {
+	if val, ok := e.values[name]; ok {
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("undefined variable '%s'", name)
+}
+
 type Interpreter struct {
 	printer Printer
+	env     *Environment
 }
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		printer: DefaultPrinter{},
+		env:     NewEnvironment(),
 	}
 }
 
 func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 	return &Interpreter{
 		printer: printer,
+		env:     NewEnvironment(),
 	}
 }
 
@@ -52,8 +77,14 @@ func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 }
 
 func (i Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	val, err := vd.initializer.Accept(i)
+	if err != nil {
+		return nil, err
+	}
+
+	i.env.Define(vd.name, val)
+
+	return nil, nil
 }
 
 func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
@@ -174,8 +205,7 @@ func (i Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
 }
 
 func (i Interpreter) VisitVariable(b *Variable) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	return i.env.Get(b.name)
 }
 
 func isNumber(op lexer.TokenType, l, r interface{}) error {

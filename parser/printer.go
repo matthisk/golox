@@ -9,7 +9,7 @@ func (e ExprPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("var %v = %s;", vd.name.Lexeme, initializer), nil
+	return fmt.Sprintf("var %s = %s;", vd.name, initializer), nil
 }
 
 func (e ExprPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {

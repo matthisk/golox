@@ -15,6 +15,8 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		logs    []string
 		wantErr bool
 	}{
+		// Assignment statement tests
+		{"print a plus b", "var a = 1; var b = 2; print a + b;", []string{"3"}, false},
 		// Print statement tests
 		{"print string literal", "print \"hello world\";", []string{"hello world"}, false},
 		{"print arithmetic", "print 5 + 5;", []string{"10"}, false},
@@ -31,19 +33,19 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"print ternary result", "print true ? \"yes\" : \"no\";", []string{"yes"}, false},
 		{"print comma expression", "print 1, 2, 3;", []string{"3"}, false},
 		{"print grouped expression", "print (2 + 3) * 4;", []string{"20"}, false},
-		
+
 		// Expression statement tests (no output expected)
 		{"expression statement arithmetic", "5 + 5;", []string{}, false},
 		{"expression statement string", "\"hello\";", []string{}, false},
 		{"expression statement boolean", "true;", []string{}, false},
 		{"expression statement comparison", "5 > 3;", []string{}, false},
 		{"expression statement function call", "!false;", []string{}, false},
-		
+
 		// Mixed statement tests
 		{"print and expression mixed", "print \"start\"; 5 + 5; print \"end\";", []string{"start", "end"}, false},
 		{"multiple expression statements", "1 + 1; 2 + 2; 3 + 3;", []string{}, false},
 		{"complex mixed statements", "print \"result:\"; print 2 * 3; 4 + 4; print \"done\";", []string{"result:", "6", "done"}, false},
-		
+
 		// Edge cases
 		{"empty program", "", []string{}, false},
 		{"print empty string", "print \"\";", []string{""}, false},
@@ -52,7 +54,7 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"print large number", "print 999999;", []string{"999999"}, false},
 		{"print decimal", "print 3.14159;", []string{"3.14159"}, false},
 		{"print simple string", "print \"simple string\";", []string{"simple string"}, false},
-		
+
 		// Complex expressions in print statements
 		{"print nested ternary", "print true ? (false ? 1 : 2) : 3;", []string{"2"}, false},
 		{"print chained comparisons", "print 1 < 2 == 2 > 1;", []string{"true"}, false},

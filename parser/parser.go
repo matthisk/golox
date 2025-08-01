@@ -52,7 +52,7 @@ func (p *Parser) statements() ([]Stmt, error) {
 	var result []Stmt
 
 	for !p.atEnd() {
-		stmt, err := p.statement()
+		stmt, err := p.declStatement()
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,9 @@ func (p *Parser) declStatement() (Stmt, error) {
 		stmt, err = p.varDeclStatement(p.previous().StartPos)
 	}
 
-	stmt, err = p.statement()
+	if stmt == nil {
+		stmt, err = p.statement()
+	}
 
 	if err != nil {
 		p.synchronize()
@@ -114,7 +116,7 @@ func (p *Parser) varDeclStatement(startPos lexer.Pos) (Stmt, error) {
 			startPos: startPos,
 			endPos:   p.previous().EndPos,
 		},
-		name:        name,
+		name:        fmt.Sprintf("%s", name.Lexeme),
 		initializer: initializer,
 	}, nil
 }

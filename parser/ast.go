@@ -23,7 +23,7 @@ type Stmt interface {
 
 type VarDecl struct {
 	BaseNode
-	name        lexer.Token
+	name        string
 	initializer Expr
 }
 
