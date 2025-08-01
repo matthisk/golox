@@ -30,12 +30,12 @@ func main() {
 		panic(res.Err)
 	}
 	ps := parser.New(res.Tokens)
-	expr, err := ps.Parse()
+	stmts, err := ps.Parse()
 	if err != nil {
 		panic(err)
 	}
 	interpreter := parser.Interpreter{}
-	val, err := interpreter.Run(expr)
+	err = interpreter.Run(stmts)
 	if err != nil {
 		panic(err)
 	}

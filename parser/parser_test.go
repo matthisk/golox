@@ -439,9 +439,9 @@ func TestParserStatementsTD(t *testing.T) {
 		expected string
 		wantErr  bool
 	}{
-		// Literal tests
+		// Print statement tests
 		{
-			name: "print statement",
+			name: "print number",
 			tokens: []lexer.Token{
 				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
 				{Type: lexer.NUMBER, Lexeme: 42},
@@ -450,6 +450,181 @@ func TestParserStatementsTD(t *testing.T) {
 			},
 			expected: "print 42;",
 			wantErr:  false,
+		},
+		{
+			name: "print string",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.STRING, Lexeme: "Hello World"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print Hello World;",
+			wantErr:  false,
+		},
+		{
+			name: "print boolean true",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.TRUE, Lexeme: "true"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print true;",
+			wantErr:  false,
+		},
+		{
+			name: "print boolean false",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.FALSE, Lexeme: "false"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print false;",
+			wantErr:  false,
+		},
+		{
+			name: "print nil",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NIL, Lexeme: "nil"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print nil;",
+			wantErr:  false,
+		},
+		{
+			name: "print arithmetic expression",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "5"},
+				{Type: lexer.PLUS},
+				{Type: lexer.NUMBER, Lexeme: "3"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print (PLUS 5 3);",
+			wantErr:  false,
+		},
+		{
+			name: "print comparison expression",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "10"},
+				{Type: lexer.GREATER},
+				{Type: lexer.NUMBER, Lexeme: "5"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print (GREATER 10 5);",
+			wantErr:  false,
+		},
+		{
+			name: "print grouped expression",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.LEFT_PAREN},
+				{Type: lexer.NUMBER, Lexeme: "2"},
+				{Type: lexer.PLUS},
+				{Type: lexer.NUMBER, Lexeme: "3"},
+				{Type: lexer.RIGHT_PAREN},
+				{Type: lexer.STAR},
+				{Type: lexer.NUMBER, Lexeme: "4"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "print (STAR (group (PLUS 2 3)) 4);",
+			wantErr:  false,
+		},
+
+		// Expression statement tests
+		{
+			name: "expression statement with number",
+			tokens: []lexer.Token{
+				{Type: lexer.NUMBER, Lexeme: "42"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "42;",
+			wantErr:  false,
+		},
+		{
+			name: "expression statement with string",
+			tokens: []lexer.Token{
+				{Type: lexer.STRING, Lexeme: "test"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "test;",
+			wantErr:  false,
+		},
+		{
+			name: "expression statement with arithmetic",
+			tokens: []lexer.Token{
+				{Type: lexer.NUMBER, Lexeme: "7"},
+				{Type: lexer.STAR},
+				{Type: lexer.NUMBER, Lexeme: "6"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "(STAR 7 6);",
+			wantErr:  false,
+		},
+		{
+			name: "expression statement with unary",
+			tokens: []lexer.Token{
+				{Type: lexer.MINUS},
+				{Type: lexer.NUMBER, Lexeme: "15"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "(MINUS 15);",
+			wantErr:  false,
+		},
+		{
+			name: "expression statement with grouping",
+			tokens: []lexer.Token{
+				{Type: lexer.LEFT_PAREN},
+				{Type: lexer.TRUE, Lexeme: "true"},
+				{Type: lexer.RIGHT_PAREN},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "(group true);",
+			wantErr:  false,
+		},
+
+		// Error cases for statements
+		{
+			name: "print without semicolon",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.NUMBER, Lexeme: "42"},
+				{Type: lexer.EOF},
+			},
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name: "expression without semicolon",
+			tokens: []lexer.Token{
+				{Type: lexer.NUMBER, Lexeme: "42"},
+				{Type: lexer.EOF},
+			},
+			expected: "",
+			wantErr:  true,
+		},
+		{
+			name: "print with missing expression",
+			tokens: []lexer.Token{
+				{Type: lexer.PRINT, StartPos: lexer.Pos{Offset: 0, Line: 1, Column: 1}},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "",
+			wantErr:  true,
 		},
 	}
 

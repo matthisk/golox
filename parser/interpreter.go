@@ -6,17 +6,49 @@ import (
 	"github.com/matthisk/lox/lexer"
 )
 
+type Printer interface {
+	Print(value interface{})
+}
+
+type DefaultPrinter struct{}
+
+func (p DefaultPrinter) Print(value interface{}) {
+	fmt.Println(value)
+}
+
 type Interpreter struct {
+	printer Printer
+}
+
+func NewInterpreter() *Interpreter {
+	return &Interpreter{
+		printer: DefaultPrinter{},
+	}
+}
+
+func NewInterpreterWithPrinter(printer Printer) *Interpreter {
+	return &Interpreter{
+		printer: printer,
+	}
 }
 
 func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	expr, err := node.expr.Accept(i)
+	if err != nil {
+		return nil, err
+	}
+
+	i.printer.Print(expr)
+	return nil, nil
 }
 
 func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	_, err := node.Accept(i)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
@@ -185,6 +217,13 @@ func (i Interpreter) evaluate(expr Expr) (interface{}, error) {
 	return expr.Accept(i)
 }
 
-func (i Interpreter) Run(expr Expr) (interface{}, error) {
-	return i.evaluate(expr)
+func (i Interpreter) Run(stmts []Stmt) error {
+	for _, stmt := range stmts {
+		_, err := stmt.Accept(i)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
