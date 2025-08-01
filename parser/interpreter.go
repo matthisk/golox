@@ -43,12 +43,17 @@ func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 }
 
 func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
-	_, err := node.Accept(i)
+	_, err := node.expr.Accept(i)
 	if err != nil {
 		return nil, err
 	}
 
 	return nil, nil
+}
+
+func (i Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
@@ -166,6 +171,11 @@ func (i Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
 		return i.evaluate(node.middle)
 	}
 	return i.evaluate(node.right)
+}
+
+func (i Interpreter) VisitVariable(b *Variable) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func isNumber(op lexer.TokenType, l, r interface{}) error {

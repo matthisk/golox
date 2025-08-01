@@ -4,6 +4,14 @@ import "fmt"
 
 type ExprPrinter struct{}
 
+func (e ExprPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
+	initializer, err := vd.initializer.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("var %v = %s;", vd.name.Lexeme, initializer), nil
+}
+
 func (e ExprPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(e)
 	if err != nil {
@@ -42,6 +50,10 @@ func (e ExprPrinter) VisitLiteral(node *Literal) (interface{}, error) {
 	}
 
 	return nil, fmt.Errorf("Unexpected lexeme type.")
+}
+
+func (e ExprPrinter) VisitVariable(b *Variable) (interface{}, error) {
+	return b.name, nil
 }
 
 func (e ExprPrinter) VisitUnary(node *Unary) (interface{}, error) {

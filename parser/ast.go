@@ -4,20 +4,6 @@ import (
 	"github.com/matthisk/lox/lexer"
 )
 
-/*
-expression     → comma ;
-comma          -> ternary ( "," ternary )*;
-ternary        -> equality ("?" ternary ":" ternary)? ;
-equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-term           → factor ( ( "-" | "+" ) factor )* ;
-factor         → unary ( ( "/" | "*" ) unary )* ;
-unary          → ( "!" | "-" ) unary
-               | primary ;
-primary        → NUMBER | STRING | "true" | "false" | "nil"
-               | "(" expression ")" ;
-*/
-
 type Visitor interface {
 	VisitPrintStmt(node *PrintStmt) (interface{}, error)
 	VisitExprStmt(node *ExprStmt) (interface{}, error)
@@ -27,10 +13,22 @@ type Visitor interface {
 	VisitComma(node *Comma) (interface{}, error)
 	VisitGrouping(node *Grouping) (interface{}, error)
 	VisitTernary(b *Ternary) (interface{}, error)
+	VisitVarDecl(vd *VarDecl) (interface{}, error)
+	VisitVariable(b *Variable) (interface{}, error)
 }
 
 type Stmt interface {
 	Accept(v Visitor) (interface{}, error)
+}
+
+type VarDecl struct {
+	BaseNode
+	name        lexer.Token
+	initializer Expr
+}
+
+func (vd *VarDecl) Accept(v Visitor) (interface{}, error) {
+	return v.VisitVarDecl(vd)
 }
 
 type ExprStmt struct {
@@ -136,6 +134,15 @@ func (b *Literal) Accept(visitor Visitor) (interface{}, error) {
 	return visitor.VisitLiteral(b)
 }
 
+type Variable struct {
+	BaseNode
+	name string
+}
+
+func (b *Variable) Accept(visitor Visitor) (interface{}, error) {
+	return visitor.VisitVariable(b)
+}
+
 // Helper functions for working with expression positions
 
 // GetExprStartPos returns the start position of any expression
@@ -152,6 +159,8 @@ func GetExprStartPos(expr Expr) lexer.Pos {
 	case *Grouping:
 		return e.GetStartPos()
 	case *Literal:
+		return e.GetStartPos()
+	case *Variable:
 		return e.GetStartPos()
 	default:
 		return lexer.Pos{}
@@ -172,6 +181,8 @@ func GetExprEndPos(expr Expr) lexer.Pos {
 	case *Grouping:
 		return e.GetEndPos()
 	case *Literal:
+		return e.GetEndPos()
+	case *Variable:
 		return e.GetEndPos()
 	default:
 		return lexer.Pos{}

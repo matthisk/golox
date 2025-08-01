@@ -15,11 +15,49 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		logs    []string
 		wantErr bool
 	}{
-		// Basic arithmetic expressions
-		{"print statement", "print \"hello world\";", []string{"hello world"}, false},
-		{"print statement", "print 5 + 5;", []string{"10"}, false},
-		{"print statement", "print 5 + 5 * 10;", []string{"55"}, false},
-		{"print statement", "print 5 + 5 * 10; print \"hello\";", []string{"55", "hello"}, false},
+		// Print statement tests
+		{"print string literal", "print \"hello world\";", []string{"hello world"}, false},
+		{"print arithmetic", "print 5 + 5;", []string{"10"}, false},
+		{"print complex arithmetic", "print 5 + 5 * 10;", []string{"55"}, false},
+		{"multiple print statements", "print 5 + 5 * 10; print \"hello\";", []string{"55", "hello"}, false},
+		{"print boolean true", "print true;", []string{"true"}, false},
+		{"print boolean false", "print false;", []string{"false"}, false},
+		{"print nil", "print nil;", []string{"<nil>"}, false},
+		{"print string concatenation", "print \"hello\" + \" \" + \"world\";", []string{"hello world"}, false},
+		{"print comparison result", "print 5 > 3;", []string{"true"}, false},
+		{"print equality result", "print 5 == 5;", []string{"true"}, false},
+		{"print unary negation", "print -42;", []string{"-42"}, false},
+		{"print logical not", "print !true;", []string{"false"}, false},
+		{"print ternary result", "print true ? \"yes\" : \"no\";", []string{"yes"}, false},
+		{"print comma expression", "print 1, 2, 3;", []string{"3"}, false},
+		{"print grouped expression", "print (2 + 3) * 4;", []string{"20"}, false},
+		
+		// Expression statement tests (no output expected)
+		{"expression statement arithmetic", "5 + 5;", []string{}, false},
+		{"expression statement string", "\"hello\";", []string{}, false},
+		{"expression statement boolean", "true;", []string{}, false},
+		{"expression statement comparison", "5 > 3;", []string{}, false},
+		{"expression statement function call", "!false;", []string{}, false},
+		
+		// Mixed statement tests
+		{"print and expression mixed", "print \"start\"; 5 + 5; print \"end\";", []string{"start", "end"}, false},
+		{"multiple expression statements", "1 + 1; 2 + 2; 3 + 3;", []string{}, false},
+		{"complex mixed statements", "print \"result:\"; print 2 * 3; 4 + 4; print \"done\";", []string{"result:", "6", "done"}, false},
+		
+		// Edge cases
+		{"empty program", "", []string{}, false},
+		{"print empty string", "print \"\";", []string{""}, false},
+		{"print zero", "print 0;", []string{"0"}, false},
+		{"print negative zero", "print -0;", []string{"-0"}, false},
+		{"print large number", "print 999999;", []string{"999999"}, false},
+		{"print decimal", "print 3.14159;", []string{"3.14159"}, false},
+		{"print simple string", "print \"simple string\";", []string{"simple string"}, false},
+		
+		// Complex expressions in print statements
+		{"print nested ternary", "print true ? (false ? 1 : 2) : 3;", []string{"2"}, false},
+		{"print chained comparisons", "print 1 < 2 == 2 > 1;", []string{"true"}, false},
+		{"print mixed operators", "print 2 + 3 * 4 == 14;", []string{"true"}, false},
+		{"print complex grouping", "print ((1 + 2) * (3 + 4)) / 7;", []string{"3"}, false},
 	}
 
 	for _, tt := range tests {

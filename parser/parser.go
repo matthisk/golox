@@ -2,12 +2,16 @@ package parser
 
 import (
 	"errors"
-
+	"fmt"
 	"github.com/matthisk/lox/lexer"
 )
 
 /*
 program     → statement* EOF ;
+
+declaration -> varDecl | statement;
+
+varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
 
 statement   -> exprStmt | printStmt;
 
@@ -24,7 +28,7 @@ factor         → unary ( ( "/" | "*" ) unary )* ;
 unary          → ( "!" | "-" ) unary
                | primary ;
 primary        → NUMBER | STRING | "true" | "false" | "nil"
-               | "(" expression ")" ;
+               | "(" expression ")" | IDENTIFIER ;
 */
 
 type Parser struct {
@@ -59,15 +63,63 @@ func (p *Parser) statements() ([]Stmt, error) {
 	return result, nil
 }
 
+func (p *Parser) declStatement() (Stmt, error) {
+	var stmt Stmt
+	var err error
+
+	if p.match(lexer.VAR) {
+		stmt, err = p.varDeclStatement(p.previous().StartPos)
+	}
+
+	stmt, err = p.statement()
+
+	if err != nil {
+		p.synchronize()
+	}
+
+	return stmt, err
+}
+
 func (p *Parser) statement() (Stmt, error) {
 	if p.match(lexer.PRINT) {
-		return p.printStatement()
+		return p.printStatement(p.previous().StartPos)
 	}
 
 	return p.exprStatement()
 }
 
-func (p *Parser) printStatement() (Stmt, error) {
+func (p *Parser) varDeclStatement(startPos lexer.Pos) (Stmt, error) {
+	var initializer Expr
+	err := p.consume(lexer.IDENTIFIER, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+
+	name := p.previous()
+
+	if p.match(lexer.EQUAL) {
+		initializer, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = p.consume(lexer.SEMICOLON, "Expect ';' after variable declaration.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &VarDecl{
+		BaseNode: BaseNode{
+			startPos: startPos,
+			endPos:   p.previous().EndPos,
+		},
+		name:        name,
+		initializer: initializer,
+	}, nil
+}
+
+func (p *Parser) printStatement(startPos lexer.Pos) (Stmt, error) {
 	expr, err := p.expression()
 	if err != nil {
 		return nil, err
@@ -79,8 +131,11 @@ func (p *Parser) printStatement() (Stmt, error) {
 	}
 
 	return &PrintStmt{
-		BaseNode: BaseNode{},
-		expr:     expr,
+		BaseNode: BaseNode{
+			startPos: startPos,
+			endPos:   GetExprEndPos(expr),
+		},
+		expr: expr,
 	}, nil
 }
 
@@ -96,8 +151,11 @@ func (p *Parser) exprStatement() (Stmt, error) {
 	}
 
 	return &ExprStmt{
-		BaseNode: BaseNode{},
-		expr:     expr,
+		BaseNode: BaseNode{
+			startPos: GetExprStartPos(expr),
+			endPos:   GetExprEndPos(expr),
+		},
+		expr: expr,
 	}, nil
 }
 
@@ -302,6 +360,17 @@ func (p *Parser) primary() (Expr, error) {
 				endPos:   token.EndPos,
 			},
 			token: token,
+		}, nil
+	}
+
+	if p.match(lexer.IDENTIFIER) {
+		token := p.previous()
+		return &Variable{
+			BaseNode: BaseNode{
+				startPos: token.StartPos,
+				endPos:   token.EndPos,
+			},
+			name: fmt.Sprintf("%s", token.Lexeme),
 		}, nil
 	}
 

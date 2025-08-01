@@ -34,10 +34,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	interpreter := parser.Interpreter{}
+	interpreter := parser.NewInterpreter()
 	err = interpreter.Run(stmts)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Fprintf(os.Stdout, "%v\n", val)
 }
