@@ -1,8 +1,29 @@
 package parser
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type AstPrinter struct{}
+
+func (e AstPrinter) VisitBlock(b *Block) (interface{}, error) {
+	var bd strings.Builder
+
+	bd.WriteString("{\n")
+
+	for i := range b.stmts {
+		stmt, err := b.stmts[i].Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		bd.WriteString(fmt.Sprintf("%s\n", stmt))
+	}
+
+	bd.WriteString("}")
+
+	return bd.String(), nil
+}
 
 func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	initializer, err := vd.initializer.Accept(e)

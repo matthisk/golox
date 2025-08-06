@@ -595,6 +595,22 @@ func TestParserStatementsTD(t *testing.T) {
 			expected: "(group true);",
 			wantErr:  false,
 		},
+		{
+			name: "block statement with grouping",
+			tokens: []lexer.Token{
+				{Type: lexer.LEFT_BRACE},
+				{Type: lexer.PRINT},
+				{Type: lexer.TRUE, Lexeme: "true"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.PRINT},
+				{Type: lexer.FALSE, Lexeme: "true"},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.RIGHT_BRACE},
+				{Type: lexer.EOF},
+			},
+			expected: "{\nprint true;\nprint true;\n}",
+			wantErr:  false,
+		},
 
 		// Error cases for statements
 		{

@@ -13,7 +13,9 @@ declaration -> varDecl | statement;
 
 varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
 
-statement   -> exprStmt | printStmt;
+statement   -> exprStmt | printStmt | block;
+
+block       -> "{" declaration* "}";
 
 exprStmt    -> expression ";";
 printStmt   -> "print" expression ";";
@@ -88,6 +90,10 @@ func (p *Parser) statement() (Stmt, error) {
 		return p.printStatement(p.previous().StartPos)
 	}
 
+	if p.match(lexer.LEFT_BRACE) {
+		return p.blockStatement(p.previous().StartPos)
+	}
+
 	return p.exprStatement()
 }
 
@@ -139,6 +145,31 @@ func (p *Parser) printStatement(startPos lexer.Pos) (Stmt, error) {
 			endPos:   GetExprEndPos(expr),
 		},
 		expr: expr,
+	}, nil
+}
+
+func (p *Parser) blockStatement(startPos lexer.Pos) (Stmt, error) {
+	var result []Stmt
+	for !p.check(lexer.RIGHT_BRACE) && !p.atEnd() {
+		stmt, err := p.declStatement()
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, stmt)
+	}
+
+	err := p.consume(lexer.RIGHT_BRACE, "Expect '}' after block.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Block{
+		BaseNode: BaseNode{
+			startPos: startPos,
+			endPos:   p.previous().EndPos,
+		},
+		stmts: result,
 	}, nil
 }
 

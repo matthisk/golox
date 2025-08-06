@@ -74,6 +74,9 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"print comma expression", "print 1, 2, 3;", []string{"3"}, false},
 		{"print grouped expression", "print (2 + 3) * 4;", []string{"20"}, false},
 
+		// Block statement
+		{"simple block scoping", "var x = 0; var y = 1; var z = 2; { var x = 1; var y = 2; { var x = 2; print x; print y; print z; } } print x;", []string{"2", "2", "2", "0"}, false},
+
 		// Expression statement tests (no output expected)
 		{"expression statement arithmetic", "5 + 5;", []string{}, false},
 		{"expression statement string", "\"hello\";", []string{}, false},

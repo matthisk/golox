@@ -77,6 +77,20 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 	}
 }
 
+func (i Interpreter) VisitBlock(b *Block) (interface{}, error) {
+	i.env = NewEnvironment(i.env)
+	defer func() { i.env = i.env.enclosing }()
+
+	for _, stmt := range b.stmts {
+		_, err := stmt.Accept(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
+}
+
 func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(i)
 	if err != nil {

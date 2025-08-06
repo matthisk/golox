@@ -16,10 +16,20 @@ type Visitor interface {
 	VisitVarDecl(vd *VarDecl) (interface{}, error)
 	VisitVariable(b *Variable) (interface{}, error)
 	VisitAssign(b *Assign) (interface{}, error)
+	VisitBlock(b *Block) (interface{}, error)
 }
 
 type Stmt interface {
 	Accept(v Visitor) (interface{}, error)
+}
+
+type Block struct {
+	BaseNode
+	stmts []Stmt
+}
+
+func (b *Block) Accept(v Visitor) (interface{}, error) {
+	return v.VisitBlock(b)
 }
 
 type VarDecl struct {
