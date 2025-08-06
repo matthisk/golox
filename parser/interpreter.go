@@ -316,3 +316,7 @@ func (i Interpreter) Run(stmts []Stmt) error {
 
 	return nil
 }
+
+func (i Interpreter) EvaluateExpression(expr Expr) (interface{}, error) {
+	return expr.Accept(i)
+}

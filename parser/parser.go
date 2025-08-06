@@ -51,6 +51,10 @@ func (p *Parser) Parse() ([]Stmt, error) {
 	return p.statements()
 }
 
+func (p *Parser) Expression() (Expr, error) {
+	return p.expression()
+}
+
 func (p *Parser) statements() ([]Stmt, error) {
 	var result []Stmt
 
@@ -486,6 +490,10 @@ func (p *Parser) check(token lexer.TokenType) bool {
 }
 
 func (p *Parser) atEnd() bool {
+	if p.index >= len(p.tokens) {
+		return true
+	}
+
 	return p.peek().Type == lexer.EOF
 }
 
