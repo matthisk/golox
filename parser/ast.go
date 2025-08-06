@@ -15,6 +15,7 @@ type Visitor interface {
 	VisitTernary(b *Ternary) (interface{}, error)
 	VisitVarDecl(vd *VarDecl) (interface{}, error)
 	VisitVariable(b *Variable) (interface{}, error)
+	VisitAssign(b *Assign) (interface{}, error)
 }
 
 type Stmt interface {
@@ -143,6 +144,16 @@ func (b *Variable) Accept(visitor Visitor) (interface{}, error) {
 	return visitor.VisitVariable(b)
 }
 
+type Assign struct {
+	BaseNode
+	name  string
+	value Expr
+}
+
+func (b *Assign) Accept(visitor Visitor) (interface{}, error) {
+	return visitor.VisitAssign(b)
+}
+
 // Helper functions for working with expression positions
 
 // GetExprStartPos returns the start position of any expression
@@ -161,6 +172,8 @@ func GetExprStartPos(expr Expr) lexer.Pos {
 	case *Literal:
 		return e.GetStartPos()
 	case *Variable:
+		return e.GetStartPos()
+	case *Assign:
 		return e.GetStartPos()
 	default:
 		return lexer.Pos{}
@@ -183,6 +196,8 @@ func GetExprEndPos(expr Expr) lexer.Pos {
 	case *Literal:
 		return e.GetEndPos()
 	case *Variable:
+		return e.GetEndPos()
+	case *Assign:
 		return e.GetEndPos()
 	default:
 		return lexer.Pos{}

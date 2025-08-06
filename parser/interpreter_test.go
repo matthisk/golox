@@ -15,8 +15,48 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		logs    []string
 		wantErr bool
 	}{
-		// Assignment statement tests
-		{"print a plus b", "var a = 1; var b = 2; print a + b;", []string{"3"}, false},
+		// Variable declaration tests
+		{"basic var declaration and use", "var a = 1; var b = 2; print a + b;", []string{"3"}, false},
+		{"var with string", "var name = \"John\"; print name;", []string{"John"}, false},
+		{"var with boolean", "var flag = true; print flag;", []string{"true"}, false},
+		{"var with nil", "var empty = nil; print empty;", []string{"<nil>"}, false},
+		{"var with expression", "var result = 2 + 3 * 4; print result;", []string{"14"}, false},
+		{"var with comparison", "var isGreater = 5 > 3; print isGreater;", []string{"true"}, false},
+		{"var with string concat", "var greeting = \"Hello\" + \" World\"; print greeting;", []string{"Hello World"}, false},
+		{"var with ternary", "var value = true ? 42 : 0; print value;", []string{"42"}, false},
+		{"var with unary", "var negative = -10; print negative;", []string{"-10"}, false},
+		{"var with logical not", "var opposite = !false; print opposite;", []string{"true"}, false},
+
+		// Multiple variable operations
+		{"multiple vars same line", "var x = 5; var y = 10; var z = x * y; print z;", []string{"50"}, false},
+		{"var reuse in expression", "var a = 3; var b = a + a; print b;", []string{"6"}, false},
+		{"vars in complex expression", "var x = 2; var y = 3; print (x + y) * (x - y);", []string{"-5"}, false},
+		{"vars with grouping", "var a = 2; var b = 3; var c = 4; print a + (b * c);", []string{"14"}, false},
+		{"vars in ternary", "var a = 5; var b = 3; print a > b ? a : b;", []string{"5"}, false},
+		{"vars in comma expression", "var a = 1; var b = 2; var c = 3; print a, b, c;", []string{"3"}, false},
+
+		// Variable reassignment through redeclaration
+		{"var redeclaration", "var x = 1; print x; var x = 2; print x;", []string{"1", "2"}, false},
+		{"var redeclaration with different type", "var v = 42; print v; var v = \"hello\"; print v;", []string{"42", "hello"}, false},
+		{"assignment error", "x = 2;", []string{}, true},
+		{"print assignemnt statement", "var x = 1; print x = 2;", []string{"2"}, false},
+		{"var redeclaration with assignment", "var x = 1; print x; x = 2; print x;", []string{"1", "2"}, false},
+		{"var redeclaration with assignment and different type", "var v = 42; print v; v = \"hello\"; print v;", []string{"42", "hello"}, false},
+
+		// Variables with all operators
+		{"vars with arithmetic", "var a = 10; var b = 3; print a + b; print a - b; print a * b; print a / b;", []string{"13", "7", "30", "3.3333333333333335"}, false},
+		{"vars with comparison", "var x = 5; var y = 3; print x > y; print x >= y; print x < y; print x <= y;", []string{"true", "true", "false", "false"}, false},
+		{"vars with equality", "var a = 5; var b = 5; var c = 3; print a == b; print a != c;", []string{"true", "true"}, false},
+
+		// Edge cases and complex scenarios
+		{"var with decimal", "var pi = 3.14159; print pi * 2;", []string{"6.28318"}, false},
+		{"var with large number", "var big = 999999; print big + 1;", []string{"1e+06"}, false},
+		{"var with zero", "var zero = 0; print zero == 0;", []string{"true"}, false},
+		{"var with empty string", "var empty = \"\"; print empty == \"\";", []string{"true"}, false},
+
+		// Variables in nested expressions
+		{"deeply nested vars", "var a = 1; var b = 2; var c = 3; print ((a + b) * c) > (a * (b + c));", []string{"true"}, false},
+		{"vars with mixed types", "var num = 42; var str = \"answer\"; var bool = true; print bool ? num : str;", []string{"42"}, false},
 		// Print statement tests
 		{"print string literal", "print \"hello world\";", []string{"hello world"}, false},
 		{"print arithmetic", "print 5 + 5;", []string{"10"}, false},

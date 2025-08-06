@@ -21,6 +21,7 @@ printStmt   -> "print" expression ";";
 expression     → comma ;
 comma          -> ternary ( "," ternary )*;
 ternary        -> equality ("?" ternary ":" ternary)? ;
+assignment     -> IDENTIFIER "=" assignment | equality;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -212,7 +213,7 @@ func (p *Parser) comma() (Expr, error) {
 }
 
 func (p *Parser) ternary() (Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.assignment()
 	if err != nil {
 		return nil, err
 	}
@@ -239,6 +240,36 @@ func (p *Parser) ternary() (Expr, error) {
 		} else {
 			return nil, errors.New("Expect colon.")
 		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) assignment() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(lexer.EQUAL) {
+		value, err := p.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		if e, ok := expr.(*Variable); ok {
+			name := e.name
+			return &Assign{
+				BaseNode: BaseNode{
+					startPos: GetExprStartPos(expr),
+					endPos:   GetExprEndPos(e),
+				},
+				name:  name,
+				value: value,
+			}, nil
+		}
+
+		return nil, errors.New("Invalid assignment target.")
 	}
 
 	return expr, nil

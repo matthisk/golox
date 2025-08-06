@@ -2,9 +2,9 @@ package parser
 
 import "fmt"
 
-type ExprPrinter struct{}
+type AstPrinter struct{}
 
-func (e ExprPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
+func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	initializer, err := vd.initializer.Accept(e)
 	if err != nil {
 		return nil, err
@@ -12,7 +12,7 @@ func (e ExprPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	return fmt.Sprintf("var %s = %s;", vd.name, initializer), nil
 }
 
-func (e ExprPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
+func (e AstPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(e)
 	if err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func (e ExprPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	return fmt.Sprintf("print %s;", expr), nil
 }
 
-func (e ExprPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
+func (e AstPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(e)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func (e ExprPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 	return fmt.Sprintf("%s;", expr), nil
 }
 
-func (e ExprPrinter) VisitBinary(node *Binary) (interface{}, error) {
+func (e AstPrinter) VisitBinary(node *Binary) (interface{}, error) {
 	left, err := node.left.Accept(e)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (e ExprPrinter) VisitBinary(node *Binary) (interface{}, error) {
 	return fmt.Sprintf("(%s %s %s)", node.token.String(), left.(string), right.(string)), nil
 }
 
-func (e ExprPrinter) VisitLiteral(node *Literal) (interface{}, error) {
+func (e AstPrinter) VisitLiteral(node *Literal) (interface{}, error) {
 	switch node.token.Lexeme.(type) {
 	case float64:
 	case int:
@@ -52,11 +52,11 @@ func (e ExprPrinter) VisitLiteral(node *Literal) (interface{}, error) {
 	return nil, fmt.Errorf("Unexpected lexeme type.")
 }
 
-func (e ExprPrinter) VisitVariable(b *Variable) (interface{}, error) {
+func (e AstPrinter) VisitVariable(b *Variable) (interface{}, error) {
 	return b.name, nil
 }
 
-func (e ExprPrinter) VisitUnary(node *Unary) (interface{}, error) {
+func (e AstPrinter) VisitUnary(node *Unary) (interface{}, error) {
 	expr, err := node.expr.Accept(e)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (e ExprPrinter) VisitUnary(node *Unary) (interface{}, error) {
 	return fmt.Sprintf("(%s %s)", node.token.String(), expr), nil
 }
 
-func (e ExprPrinter) VisitComma(node *Comma) (interface{}, error) {
+func (e AstPrinter) VisitComma(node *Comma) (interface{}, error) {
 	left, err := node.left.Accept(e)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (e ExprPrinter) VisitComma(node *Comma) (interface{}, error) {
 	return fmt.Sprintf("(, %s %s)", left, right), nil
 }
 
-func (e ExprPrinter) VisitTernary(node *Ternary) (interface{}, error) {
+func (e AstPrinter) VisitTernary(node *Ternary) (interface{}, error) {
 	left, err := node.left.Accept(e)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,16 @@ func (e ExprPrinter) VisitTernary(node *Ternary) (interface{}, error) {
 	return fmt.Sprintf("(TERNARY %s %s %s)", left.(string), middle.(string), right.(string)), nil
 }
 
-func (e ExprPrinter) VisitGrouping(node *Grouping) (interface{}, error) {
+func (e AstPrinter) VisitAssign(b *Assign) (interface{}, error) {
+	value, err := b.value.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf("(ASSIGN %s %s)", b.name, value), nil
+}
+
+func (e AstPrinter) VisitGrouping(node *Grouping) (interface{}, error) {
 	expr, err := node.expr.Accept(e)
 	if err != nil {
 		return nil, err
@@ -101,7 +110,7 @@ func (e ExprPrinter) VisitGrouping(node *Grouping) (interface{}, error) {
 }
 
 func Print(expr Expr) (string, error) {
-	printer := ExprPrinter{}
+	printer := AstPrinter{}
 	res, err := expr.Accept(printer)
 	if err != nil {
 		return "", err

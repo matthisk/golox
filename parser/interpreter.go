@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/matthisk/lox/lexer"
@@ -17,12 +18,14 @@ func (p DefaultPrinter) Print(value interface{}) {
 }
 
 type Environment struct {
-	values map[string]interface{}
+	enclosing *Environment
+	values    map[string]interface{}
 }
 
-func NewEnvironment() *Environment {
+func NewEnvironment(enclosing *Environment) *Environment {
 	return &Environment{
-		values: make(map[string]interface{}),
+		enclosing: enclosing,
+		values:    make(map[string]interface{}),
 	}
 }
 
@@ -30,9 +33,26 @@ func (e *Environment) Define(name string, val interface{}) {
 	e.values[name] = val
 }
 
+func (e *Environment) Assign(name string, val interface{}) error {
+	if _, ok := e.values[name]; ok {
+		e.values[name] = val
+		return nil
+	}
+
+	if e.enclosing != nil {
+		return e.enclosing.Assign(name, val)
+	}
+
+	return errors.New("Undefined variable '" + name + "'.")
+}
+
 func (e *Environment) Get(name string) (interface{}, error) {
 	if val, ok := e.values[name]; ok {
 		return val, nil
+	}
+
+	if e.enclosing != nil {
+		return e.enclosing.Get(name)
 	}
 
 	return nil, fmt.Errorf("undefined variable '%s'", name)
@@ -46,14 +66,14 @@ type Interpreter struct {
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		printer: DefaultPrinter{},
-		env:     NewEnvironment(),
+		env:     NewEnvironment(nil),
 	}
 }
 
 func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 	return &Interpreter{
 		printer: printer,
-		env:     NewEnvironment(),
+		env:     NewEnvironment(nil),
 	}
 }
 
@@ -77,14 +97,29 @@ func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 }
 
 func (i Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
-	val, err := vd.initializer.Accept(i)
+	if vd.initializer != nil {
+		val, err := vd.initializer.Accept(i)
+		if err != nil {
+			return nil, err
+		}
+
+		i.env.Define(vd.name, val)
+	} else {
+		i.env.Define(vd.name, nil)
+	}
+
+	return nil, nil
+}
+
+func (i Interpreter) VisitAssign(b *Assign) (interface{}, error) {
+	value, err := i.evaluate(b.value)
 	if err != nil {
 		return nil, err
 	}
 
-	i.env.Define(vd.name, val)
+	err = i.env.Assign(b.name, value)
 
-	return nil, nil
+	return value, err
 }
 
 func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
