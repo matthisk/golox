@@ -64,6 +64,47 @@ func (e AstPrinter) VisitWhileStatement(s *WhileStatement) (interface{}, error) 
 	return fmt.Sprintf("while (%s) %s", cond, body), nil
 }
 
+func (e AstPrinter) VisitForStatement(s *ForStatement) (interface{}, error) {
+	var init string
+	var cond string
+	var inc string
+
+	if s.initializer != nil {
+		initResult, err := s.initializer.Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		init = initResult.(string)
+		// Remove the semicolon from var declarations and expression statements
+		if len(init) > 0 && init[len(init)-1] == ';' {
+			init = init[:len(init)-1]
+		}
+	}
+
+	if s.condition != nil {
+		condResult, err := s.condition.Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		cond = condResult.(string)
+	}
+
+	if s.increment != nil {
+		incResult, err := s.increment.Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		inc = incResult.(string)
+	}
+
+	body, err := s.body.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf("for (%s; %s; %s) %s", init, cond, inc, body), nil
+}
+
 func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	initializer, err := vd.initializer.Accept(e)
 	if err != nil {

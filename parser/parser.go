@@ -13,11 +13,12 @@ declaration -> varDecl | statement;
 
 varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
 
-statement   -> exprStmt | ifStmt | whileStmt | printStmt | block;
+statement   -> exprStmt | ifStmt | whileStmt | forStmt | printStmt | block;
 
 exprStmt    -> expression ";";
 ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?;
 whileStmt   -> "while" "(" expression ")" statement;
+forStmt     -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement;
 printStmt   -> "print" expression ";";
 block       -> "{" declaration* "}";
 
@@ -103,6 +104,10 @@ func (p *Parser) statement() (Stmt, error) {
 
 	if p.match(lexer.WHILE) {
 		return p.whileStatement(p.previous().StartPos)
+	}
+
+	if p.match(lexer.FOR) {
+		return p.forStatement(p.previous().StartPos)
 	}
 
 	if p.match(lexer.LEFT_BRACE) {
@@ -256,6 +261,72 @@ func (p *Parser) whileStatement(pos lexer.Pos) (Stmt, error) {
 		},
 		cond: cond,
 		body: body,
+	}, nil
+}
+
+func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
+	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after 'for'.")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse initializer: varDecl | exprStmt | ";"
+	var initializer Stmt
+	if p.match(lexer.SEMICOLON) {
+		initializer = nil
+	} else if p.match(lexer.VAR) {
+		initializer, err = p.varDeclStatement(p.previous().StartPos)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = p.exprStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Parse condition (optional)
+	var condition Expr
+	if !p.check(lexer.SEMICOLON) {
+		condition, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = p.consume(lexer.SEMICOLON, "Expect ';' after loop condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse increment (optional)
+	var increment Expr
+	if !p.check(lexer.RIGHT_PAREN) {
+		increment, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = p.consume(lexer.RIGHT_PAREN, "Expect ')' after for clauses.")
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse body
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ForStatement{
+		BaseNode: BaseNode{
+			startPos: pos,
+			endPos:   p.previous().EndPos,
+		},
+		initializer: initializer,
+		condition:   condition,
+		increment:   increment,
+		body:        body,
 	}, nil
 }
 

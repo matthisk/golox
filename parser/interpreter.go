@@ -135,6 +135,11 @@ func (i Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error)
 	return nil, nil
 }
 
+func (i Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
+	// TODO: implement for statement execution
+	return nil, nil
+}
+
 func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(i)
 	if err != nil {

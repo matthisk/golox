@@ -19,6 +19,7 @@ type Visitor interface {
 	VisitBlock(b *Block) (interface{}, error)
 	VisitIfStatement(s *IfStatement) (interface{}, error)
 	VisitWhileStatement(s *WhileStatement) (interface{}, error)
+	VisitForStatement(s *ForStatement) (interface{}, error)
 	VisitLogical(b *Logical) (interface{}, error)
 }
 
@@ -82,6 +83,18 @@ type WhileStatement struct {
 
 func (s *WhileStatement) Accept(v Visitor) (interface{}, error) {
 	return v.VisitWhileStatement(s)
+}
+
+type ForStatement struct {
+	BaseNode
+	initializer Stmt // Can be VarDecl, ExprStmt, or nil
+	condition   Expr // Can be nil
+	increment   Expr // Can be nil
+	body        Stmt
+}
+
+func (s *ForStatement) Accept(v Visitor) (interface{}, error) {
+	return v.VisitForStatement(s)
 }
 
 type Expr interface {
