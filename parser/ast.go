@@ -17,6 +17,8 @@ type Visitor interface {
 	VisitVariable(b *Variable) (interface{}, error)
 	VisitAssign(b *Assign) (interface{}, error)
 	VisitBlock(b *Block) (interface{}, error)
+	VisitIfStatement(s *IfStatement) (interface{}, error)
+	VisitLogical(b *Logical) (interface{}, error)
 }
 
 type Stmt interface {
@@ -60,6 +62,17 @@ func (p *PrintStmt) Accept(v Visitor) (interface{}, error) {
 	return v.VisitPrintStmt(p)
 }
 
+type IfStatement struct {
+	BaseNode
+	cond      Expr
+	ifBlock   Stmt
+	elseBlock Stmt
+}
+
+func (s *IfStatement) Accept(v Visitor) (interface{}, error) {
+	return v.VisitIfStatement(s)
+}
+
 type Expr interface {
 	Accept(v Visitor) (interface{}, error)
 }
@@ -94,6 +107,17 @@ type Binary struct {
 
 func (b *Binary) Accept(visitor Visitor) (interface{}, error) {
 	return visitor.VisitBinary(b)
+}
+
+type Logical struct {
+	BaseNode
+	left  Expr
+	token lexer.TokenType
+	right Expr
+}
+
+func (b *Logical) Accept(visitor Visitor) (interface{}, error) {
+	return visitor.VisitLogical(b)
 }
 
 type Unary struct {

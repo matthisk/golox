@@ -91,6 +91,29 @@ func (i Interpreter) VisitBlock(b *Block) (interface{}, error) {
 	return nil, nil
 }
 
+func (i Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
+	cond, err := s.cond.Accept(i)
+	if err != nil {
+		return nil, err
+	}
+
+	if isTruthy(cond) {
+		_, err := s.ifBlock.Accept(i)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if s.elseBlock != nil {
+			_, err := s.elseBlock.Accept(i)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return nil, nil
+}
+
 func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(i)
 	if err != nil {
@@ -134,6 +157,27 @@ func (i Interpreter) VisitAssign(b *Assign) (interface{}, error) {
 	err = i.env.Assign(b.name, value)
 
 	return value, err
+}
+
+func (i Interpreter) VisitLogical(b *Logical) (interface{}, error) {
+	left, err := b.left.Accept(i)
+	if err != nil {
+		return nil, err
+	}
+
+	if b.token == lexer.OR {
+		if isTruthy(left) {
+			return left, nil
+		}
+	} else if b.token == lexer.AND {
+		if !isTruthy(left) {
+			return left, nil
+		}
+	} else {
+		panic("Illegal AST node Logical with token type")
+	}
+
+	return i.evaluate(b.right)
 }
 
 func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {

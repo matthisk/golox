@@ -115,6 +115,14 @@ func (lx *Lexer) Next() Token {
 			return lx.makeToken(LESS_EQUAL, startPos)
 		}
 		return lx.makeToken(LESS, startPos)
+	case '&':
+		if lx.match('&') {
+			return lx.makeToken(AND, startPos)
+		}
+	case '|':
+		if lx.match('|') {
+			return lx.makeToken(OR, startPos)
+		}
 	case 0: // rune(0) when you hit EOF
 		return lx.makeToken(EOF, startPos)
 	}

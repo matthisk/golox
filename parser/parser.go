@@ -13,17 +13,19 @@ declaration -> varDecl | statement;
 
 varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
 
-statement   -> exprStmt | printStmt | block;
-
-block       -> "{" declaration* "}";
+statement   -> exprStmt | ifStmt | printStmt | block;
 
 exprStmt    -> expression ";";
+ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?;
 printStmt   -> "print" expression ";";
+block       -> "{" declaration* "}";
 
 expression     → comma ;
 comma          -> ternary ( "," ternary )*;
 ternary        -> equality ("?" ternary ":" ternary)? ;
-assignment     -> IDENTIFIER "=" assignment | equality;
+assignment     -> IDENTIFIER "=" assignment | logic_or;
+logic_or       -> logic_and ( "or" logic_and )*;
+logic_and      -> equality ( "and" equality )*;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -92,6 +94,10 @@ func (p *Parser) declStatement() (Stmt, error) {
 func (p *Parser) statement() (Stmt, error) {
 	if p.match(lexer.PRINT) {
 		return p.printStatement(p.previous().StartPos)
+	}
+
+	if p.match(lexer.IF) {
+		return p.ifStatement(p.previous().StartPos)
 	}
 
 	if p.match(lexer.LEFT_BRACE) {
@@ -174,6 +180,46 @@ func (p *Parser) blockStatement(startPos lexer.Pos) (Stmt, error) {
 			endPos:   p.previous().EndPos,
 		},
 		stmts: result,
+	}, nil
+}
+
+func (p *Parser) ifStatement(pos lexer.Pos) (Stmt, error) {
+	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after if statement.")
+	if err != nil {
+		return nil, err
+	}
+
+	cond, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.consume(lexer.RIGHT_PAREN, "Expect ')' after if statement.")
+	if err != nil {
+		return nil, err
+	}
+
+	ifBlock, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	var elseBlock Stmt
+	if p.match(lexer.ELSE) {
+		elseBlock, err = p.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &IfStatement{
+		BaseNode: BaseNode{
+			startPos: pos,
+			endPos:   p.previous().EndPos,
+		},
+		cond:      cond,
+		ifBlock:   ifBlock,
+		elseBlock: elseBlock,
 	}, nil
 }
 
@@ -281,7 +327,7 @@ func (p *Parser) ternary() (Expr, error) {
 }
 
 func (p *Parser) assignment() (Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.logicOr()
 	if err != nil {
 		return nil, err
 	}
@@ -305,6 +351,54 @@ func (p *Parser) assignment() (Expr, error) {
 		}
 
 		return nil, errors.New("Invalid assignment target.")
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) logicOr() (Expr, error) {
+	expr, err := p.logicAnd()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(lexer.OR) {
+		operator := p.previous()
+		right, err := p.logicAnd()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = &Logical{
+			BaseNode: NewBaseNodeFromExprs(expr, right),
+			left:     expr,
+			token:    operator.Type,
+			right:    right,
+		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) logicAnd() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(lexer.AND) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = &Logical{
+			BaseNode: NewBaseNodeFromExprs(expr, right),
+			left:     expr,
+			token:    operator.Type,
+			right:    right,
+		}
 	}
 
 	return expr, nil

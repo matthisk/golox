@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"github.com/matthisk/lox/lexer"
 	"strings"
 )
 
@@ -23,6 +24,30 @@ func (e AstPrinter) VisitBlock(b *Block) (interface{}, error) {
 	bd.WriteString("}")
 
 	return bd.String(), nil
+}
+
+func (e AstPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
+	cond, err := s.cond.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	ifBlock, err := s.ifBlock.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	result := fmt.Sprintf("if (%s) %s", cond, ifBlock)
+
+	if s.elseBlock != nil {
+		elseBlock, err := s.elseBlock.Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		result += fmt.Sprintf(" else %s", elseBlock)
+	}
+
+	return result, nil
 }
 
 func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
@@ -49,6 +74,18 @@ func (e AstPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 	return fmt.Sprintf("%s;", expr), nil
 }
 
+func (e AstPrinter) VisitLogical(b *Logical) (interface{}, error) {
+	left, err := b.left.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+	right, err := b.right.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("(%s %s %s)", b.token, left, right), nil
+}
+
 func (e AstPrinter) VisitBinary(node *Binary) (interface{}, error) {
 	left, err := node.left.Accept(e)
 	if err != nil {
@@ -62,15 +99,20 @@ func (e AstPrinter) VisitBinary(node *Binary) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitLiteral(node *Literal) (interface{}, error) {
-	switch node.token.Lexeme.(type) {
-	case float64:
-	case int:
-		return fmt.Sprintf("%d", node.token.Lexeme), nil
-	case string:
-		return node.token.Lexeme, nil
+	switch node.token.Type {
+	case lexer.STRING:
+		return fmt.Sprintf("\"%s\"", node.token.Lexeme), nil
+	case lexer.NUMBER:
+		return fmt.Sprintf("%v", node.token.Lexeme), nil
+	case lexer.TRUE:
+		return "true", nil
+	case lexer.FALSE:
+		return "false", nil
+	case lexer.NIL:
+		return "nil", nil
+	default:
+		return fmt.Sprintf("%v", node.token.Lexeme), nil
 	}
-
-	return nil, fmt.Errorf("Unexpected lexeme type.")
 }
 
 func (e AstPrinter) VisitVariable(b *Variable) (interface{}, error) {

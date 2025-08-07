@@ -77,6 +77,51 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		// Block statement
 		{"simple block scoping", "var x = 0; var y = 1; var z = 2; { var x = 1; var y = 2; { var x = 2; print x; print y; print z; } } print x;", []string{"2", "2", "2", "0"}, false},
 
+		// If statement tests
+		{"simple if true condition", "if (true) print \"if executed\";", []string{"if executed"}, false},
+		{"if and condition", "if (true && true) print \"if executed\";", []string{"if executed"}, false},
+		{"if or condition", "if (false || true) print \"if executed\";", []string{"if executed"}, false},
+		{"simple if false condition", "if (false) print \"should not print\";", []string{}, false},
+		{"if-else with true condition", "if (true) print \"if block\"; else print \"else block\";", []string{"if block"}, false},
+		{"if-else with false condition", "if (false) print \"if block\"; else print \"else block\";", []string{"else block"}, false},
+		{"if with expression condition", "if (5 > 3) print \"five is greater\";", []string{"five is greater"}, false},
+		{"if with false expression condition", "if (3 > 5) print \"should not print\";", []string{}, false},
+		{"if with variable condition", "var condition = true; if (condition) print \"variable is true\";", []string{"variable is true"}, false},
+		{"if with complex condition", "var x = 10; if (x > 5 && x < 15) print \"in range\";", []string{}, true}, // This will fail because && is not implemented
+		{"if with arithmetic in condition", "if (2 + 3 == 5) print \"math works\";", []string{"math works"}, false},
+		{"if with string comparison", "var name = \"John\"; if (name == \"John\") print \"hello John\";", []string{"hello John"}, false},
+		{"if with nil condition", "if (nil) print \"should not print\";", []string{}, false},
+		{"if with truthy number", "if (42) print \"number is truthy\";", []string{"number is truthy"}, false},
+		{"if with truthy string", "if (\"hello\") print \"string is truthy\";", []string{"string is truthy"}, false},
+		{"if with zero condition", "if (0) print \"zero is truthy\";", []string{"zero is truthy"}, false},
+
+		// If statement with blocks
+		{"if with block statement", "if (true) { print \"line 1\"; print \"line 2\"; }", []string{"line 1", "line 2"}, false},
+		{"if-else with blocks", "if (false) { print \"if block\"; } else { print \"else block\"; }", []string{"else block"}, false},
+		{"if with variable in block", "var x = 5; if (true) { var y = 10; print x + y; }", []string{"15"}, false},
+		{"if with block scoping", "var x = 1; if (true) { var x = 2; print x; } print x;", []string{"2", "1"}, false},
+
+		// Nested if statements
+		{"nested if statements", "if (true) if (true) print \"nested\";", []string{"nested"}, false},
+		{"nested if-else", "if (true) if (false) print \"inner if\"; else print \"inner else\";", []string{"inner else"}, false},
+		{"nested if with blocks", "if (true) { if (false) print \"inner\"; print \"outer\"; }", []string{"outer"}, false},
+
+		// If-else-if chains
+		{"if-else-if chain", "var x = 2; if (x == 1) print \"one\"; else if (x == 2) print \"two\"; else print \"other\";", []string{"two"}, false},
+		{"if-else-if chain all false", "var x = 5; if (x == 1) print \"one\"; else if (x == 2) print \"two\"; else print \"other\";", []string{"other"}, false},
+		{"long if-else-if chain", "var grade = 85; if (grade >= 90) print \"A\"; else if (grade >= 80) print \"B\"; else if (grade >= 70) print \"C\"; else print \"F\";", []string{"B"}, false},
+
+		// If statements with variables and expressions
+		{"if with variable assignment", "var result = \"\"; if (true) result = \"success\"; print result;", []string{"success"}, false},
+		{"if modifying outer variable", "var counter = 0; if (true) { counter = counter + 1; } print counter;", []string{"1"}, false},
+		{"if with ternary in condition", "if (true ? true : false) print \"ternary worked\";", []string{"ternary worked"}, false},
+		{"if with comma expression", "var a = 1; if (a = 2, a == 2) print \"comma and assignment\";", []string{"comma and assignment"}, false},
+
+		// Complex if statement scenarios
+		{"multiple if statements", "if (true) print \"first\"; if (false) print \"second\"; if (true) print \"third\";", []string{"first", "third"}, false},
+		{"if statements with different types", "if (1) print \"number\"; if (\"\") print \"string\"; if (nil) print \"nil\";", []string{"number", "string"}, false},
+		{"if with print in both branches", "var choice = true; if (choice) print \"option A\"; else print \"option B\";", []string{"option A"}, false},
+
 		// Expression statement tests (no output expected)
 		{"expression statement arithmetic", "5 + 5;", []string{}, false},
 		{"expression statement string", "\"hello\";", []string{}, false},
@@ -257,6 +302,12 @@ func runLox(source string) ([]string, error) {
 	lexResult := lexer.Consume(lx)
 	if lexResult.Err != nil {
 		return nil, lexResult.Err
+	}
+
+	for i := range lexResult.Tokens {
+		if lexResult.Tokens[i].Type == lexer.ILLEGAL {
+			return nil, fmt.Errorf("Lexer found illegal token found at index %d", i)
+		}
 	}
 
 	parser := New(lexResult.Tokens)
