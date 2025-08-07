@@ -13,10 +13,11 @@ declaration -> varDecl | statement;
 
 varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
 
-statement   -> exprStmt | ifStmt | printStmt | block;
+statement   -> exprStmt | ifStmt | whileStmt | printStmt | block;
 
 exprStmt    -> expression ";";
 ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?;
+whileStmt   -> "while" "(" expression ")" statement;
 printStmt   -> "print" expression ";";
 block       -> "{" declaration* "}";
 
@@ -98,6 +99,10 @@ func (p *Parser) statement() (Stmt, error) {
 
 	if p.match(lexer.IF) {
 		return p.ifStatement(p.previous().StartPos)
+	}
+
+	if p.match(lexer.WHILE) {
+		return p.whileStatement(p.previous().StartPos)
 	}
 
 	if p.match(lexer.LEFT_BRACE) {
@@ -220,6 +225,37 @@ func (p *Parser) ifStatement(pos lexer.Pos) (Stmt, error) {
 		cond:      cond,
 		ifBlock:   ifBlock,
 		elseBlock: elseBlock,
+	}, nil
+}
+
+func (p *Parser) whileStatement(pos lexer.Pos) (Stmt, error) {
+	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after 'while'.")
+	if err != nil {
+		return nil, err
+	}
+
+	cond, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.consume(lexer.RIGHT_PAREN, "Expect ')' after condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WhileStatement{
+		BaseNode: BaseNode{
+			startPos: pos,
+			endPos:   p.previous().EndPos,
+		},
+		cond: cond,
+		body: body,
 	}, nil
 }
 

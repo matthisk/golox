@@ -50,6 +50,20 @@ func (e AstPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 	return result, nil
 }
 
+func (e AstPrinter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
+	cond, err := s.cond.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := s.body.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf("while (%s) %s", cond, body), nil
+}
+
 func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	initializer, err := vd.initializer.Accept(e)
 	if err != nil {
