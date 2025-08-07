@@ -115,7 +115,23 @@ func (i Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 }
 
 func (i Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
-	// TODO: implement while statement execution
+	cond, err := s.cond.Accept(i)
+	if err != nil {
+		return nil, err
+	}
+
+	for isTruthy(cond) {
+		_, err := s.body.Accept(i)
+		if err != nil {
+			return nil, err
+		}
+
+		cond, err = s.cond.Accept(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return nil, nil
 }
 

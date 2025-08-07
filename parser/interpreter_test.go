@@ -122,6 +122,19 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"if statements with different types", "if (1) print \"number\"; if (\"\") print \"string\"; if (nil) print \"nil\";", []string{"number", "string"}, false},
 		{"if with print in both branches", "var choice = true; if (choice) print \"option A\"; else print \"option B\";", []string{"option A"}, false},
 
+		// While loop tests
+		{"while with false condition", "while (false) print \"should not print\";", []string{}, false},
+		{"while with counter", "var i = 0; while (i < 3) { print i; i = i + 1; }", []string{"0", "1", "2"}, false},
+		{"while with string counter", "var count = 0; while (count < 2) { print \"iteration\"; count = count + 1; }", []string{"iteration", "iteration"}, false},
+		{"while with variable condition", "var running = true; var counter = 0; while (running) { print counter; counter = counter + 1; if (counter >= 2) running = false; }", []string{"0", "1"}, false},
+		{"while modifying condition inside loop", "var x = 5; while (x > 0) { print x; x = x - 1; }", []string{"5", "4", "3", "2", "1"}, false},
+		{"while with complex condition", "var a = 1; var b = 10; while (a < 5 && b > 8) { print a; a = a + 1; b = b - 1; }", []string{"1", "2"}, false},
+		{"while with block and variables", "var sum = 0; var i = 1; while (i <= 3) { sum = sum + i; print sum; i = i + 1; }", []string{"1", "3", "6"}, false},
+		{"nested while loops", "var outer = 0; while (outer < 2) { var inner = 0; while (inner < 2) { print outer * 10 + inner; inner = inner + 1; } outer = outer + 1; }", []string{"0", "1", "10", "11"}, false},
+		{"while with early termination", "var count = 0; while (count < 10) { print count; count = count + 1; if (count == 3) count = 10; }", []string{"0", "1", "2"}, false},
+		{"while with nil check", "var value = 5; while (value) { print value; value = value - 1; if (value == 0) value = nil; }", []string{"5", "4", "3", "2", "1"}, false},
+		{"while with boolean toggle", "var toggle = true; var count = 0; while (toggle) { print \"on\"; count = count + 1; if (count >= 2) toggle = false; }", []string{"on", "on"}, false},
+
 		// Expression statement tests (no output expected)
 		{"expression statement arithmetic", "5 + 5;", []string{}, false},
 		{"expression statement string", "\"hello\";", []string{}, false},
