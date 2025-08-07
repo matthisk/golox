@@ -136,7 +136,7 @@ func (i Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error)
 }
 
 func (i Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
-	// TODO: implement for statement execution
+	// We don't implement for statements, they are desugared to a while loop by the parser.
 	return nil, nil
 }
 

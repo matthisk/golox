@@ -318,16 +318,34 @@ func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
 		return nil, err
 	}
 
-	return &ForStatement{
+	// Desugar the for loop into a while loop
+	if increment != nil {
+		body = &Block{
+			BaseNode: BaseNode{},
+			stmts:    []Stmt{body, &ExprStmt{expr: increment}},
+		}
+	}
+
+	if condition == nil {
+		condition = &Literal{token: lexer.Token{Type: lexer.TRUE}}
+	}
+
+	body = &WhileStatement{
 		BaseNode: BaseNode{
 			startPos: pos,
 			endPos:   p.previous().EndPos,
 		},
-		initializer: initializer,
-		condition:   condition,
-		increment:   increment,
-		body:        body,
-	}, nil
+		cond: condition,
+		body: body,
+	}
+
+	if initializer != nil {
+		body = &Block{
+			stmts: []Stmt{initializer, body},
+		}
+	}
+
+	return body, nil
 }
 
 func (p *Parser) exprStatement() (Stmt, error) {

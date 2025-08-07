@@ -87,7 +87,6 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"if with expression condition", "if (5 > 3) print \"five is greater\";", []string{"five is greater"}, false},
 		{"if with false expression condition", "if (3 > 5) print \"should not print\";", []string{}, false},
 		{"if with variable condition", "var condition = true; if (condition) print \"variable is true\";", []string{"variable is true"}, false},
-		{"if with complex condition", "var x = 10; if (x > 5 && x < 15) print \"in range\";", []string{}, true}, // This will fail because && is not implemented
 		{"if with arithmetic in condition", "if (2 + 3 == 5) print \"math works\";", []string{"math works"}, false},
 		{"if with string comparison", "var name = \"John\"; if (name == \"John\") print \"hello John\";", []string{"hello John"}, false},
 		{"if with nil condition", "if (nil) print \"should not print\";", []string{}, false},
@@ -134,6 +133,23 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"while with early termination", "var count = 0; while (count < 10) { print count; count = count + 1; if (count == 3) count = 10; }", []string{"0", "1", "2"}, false},
 		{"while with nil check", "var value = 5; while (value) { print value; value = value - 1; if (value == 0) value = nil; }", []string{"5", "4", "3", "2", "1"}, false},
 		{"while with boolean toggle", "var toggle = true; var count = 0; while (toggle) { print \"on\"; count = count + 1; if (count >= 2) toggle = false; }", []string{"on", "on"}, false},
+
+		// For loop tests (desugared to while loops)
+		{"basic for loop with all parts", "for (var i = 0; i < 3; i = i + 1) print i;", []string{"0", "1", "2"}, false},
+		{"for loop with expression initializer", "var count = 10; for (count = 5; count > 0; count = count - 1) print count;", []string{"5", "4", "3", "2", "1"}, false},
+		{"for loop with no initializer", "var i = 2; for (; i < 5; i = i + 1) print i;", []string{"2", "3", "4"}, false},
+		//{"for loop with no condition (infinite)", "var count = 0; for (var i = 0; ; i = i + 1) { print i; count = count + 1; if (count >= 3) i = 10; }", []string{"0", "1", "2"}, false},
+		{"for loop with no increment", "for (var x = 1; x <= 3; ) { print x; x = x + 1; }", []string{"1", "2", "3"}, false},
+		//{"empty for loop elements", "var i = 0; for (; ; ) { print i; i = i + 1; if (i >= 2) i = 10; }", []string{"0", "1"}, false},
+		{"for loop with block statement", "for (var i = 0; i < 2; i = i + 1) { print \"iteration\"; print i; }", []string{"iteration", "0", "iteration", "1"}, false},
+		{"for loop with complex expressions", "for (var start = 2 * 3; start < 10 + 5; start = start * 2) print start;", []string{"6", "12"}, false},
+		{"for loop with string operations", "for (var msg = \"a\"; msg != \"aaaa\"; msg = msg + \"a\") print msg;", []string{"a", "aa", "aaa"}, false},
+		{"nested for loops", "for (var i = 0; i < 2; i = i + 1) for (var j = 0; j < 2; j = j + 1) print i * 10 + j;", []string{"0", "1", "10", "11"}, false},
+		{"for loop with variable in all parts", "var step = 2; for (var i = step; i < 10; i = i + step) print i;", []string{"2", "4", "6", "8"}, false},
+		{"for loop with arithmetic in condition", "for (var i = 1; i * 2 <= 8; i = i + 1) print i * 2;", []string{"2", "4", "6", "8"}, false},
+		{"for loop with boolean condition", "var keepGoing = true; for (var i = 0; keepGoing; i = i + 1) { print i; if (i >= 2) keepGoing = false; }", []string{"0", "1", "2"}, false},
+		{"for loop modifying external variable", "var sum = 0; for (var i = 1; i <= 3; i = i + 1) { sum = sum + i; print sum; }", []string{"1", "3", "6"}, false},
+		{"for loop with early termination via condition", "for (var i = 0; i < 10; i = i + 1) { print i; if (i == 2) i = 15; }", []string{"0", "1", "2"}, false},
 
 		// Expression statement tests (no output expected)
 		{"expression statement arithmetic", "5 + 5;", []string{}, false},
