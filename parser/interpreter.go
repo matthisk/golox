@@ -7,6 +7,13 @@ import (
 	"github.com/matthisk/lox/lexer"
 )
 
+type ControlFlowStmt string
+
+const (
+	BREAK    ControlFlowStmt = "BREAK"
+	CONTINUE                 = "CONTINUE"
+)
+
 type Printer interface {
 	Print(value interface{})
 }
@@ -82,9 +89,15 @@ func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
 	defer func() { i.env = i.env.enclosing }()
 
 	for _, stmt := range b.stmts {
-		_, err := stmt.Accept(i)
+		result, err := stmt.Accept(i)
 		if err != nil {
 			return nil, err
+		}
+
+		// in case we encounter a break or continue statement we return back to
+		// the control flow statement.
+		if result != nil {
+			return result, nil
 		}
 	}
 
@@ -121,9 +134,13 @@ func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error
 	}
 
 	for isTruthy(cond) {
-		_, err := s.body.Accept(i)
+		result, err := s.body.Accept(i)
 		if err != nil {
 			return nil, err
+		}
+
+		if result == BREAK {
+			break
 		}
 
 		cond, err = s.cond.Accept(i)
@@ -141,11 +158,11 @@ func (i *Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
 }
 
 func (i *Interpreter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
-	return nil, nil
+	return BREAK, nil
 }
 
 func (i *Interpreter) VisitContinueStmt(c *ContinueStmt) (interface{}, error) {
-	return nil, nil
+	return CONTINUE, nil
 }
 
 func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {

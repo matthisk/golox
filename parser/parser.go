@@ -153,7 +153,7 @@ func (p *Parser) statement() (Stmt, error) {
 
 		endPos := p.previous().EndPos
 
-		return &BreakStmt{BaseNode{startPos: startPos, endPos: endPos}}, nil
+		return &ContinueStmt{BaseNode{startPos: startPos, endPos: endPos}}, nil
 	}
 
 	return p.exprStatement()
@@ -313,6 +313,9 @@ func (p *Parser) whileStatement(pos lexer.Pos) (Stmt, error) {
 }
 
 func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
+	p.contextStack.Push(&ContextItem{Type: "for", CanBreak: true})
+	defer p.contextStack.Pop()
+
 	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after 'for'.")
 	if err != nil {
 		return nil, err
