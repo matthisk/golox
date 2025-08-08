@@ -1057,7 +1057,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (var i = 0; (LESS i 10); (ASSIGN i (PLUS i 1))) print i;",
+			expected: "{\nvar i = 0;\nwhile ((LESS i 10)) {\nprint i;\n(ASSIGN i (PLUS i 1));\n}\n}",
 			wantErr:  false,
 		},
 		{
@@ -1084,7 +1084,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for ((ASSIGN count 5); (GREATER count 0); (ASSIGN count (MINUS count 1))) print count;",
+			expected: "{\n(ASSIGN count 5);\nwhile ((GREATER count 0)) {\nprint count;\n(ASSIGN count (MINUS count 1));\n}\n}",
 			wantErr:  false,
 		},
 		{
@@ -1106,7 +1106,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (; running; (ASSIGN counter (PLUS counter 1))) print \"looping\";",
+			expected: "while (running) {\nprint \"looping\";\n(ASSIGN counter (PLUS counter 1));\n}",
 			wantErr:  false,
 		},
 		{
@@ -1131,7 +1131,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (var i = 0; ; (ASSIGN i (PLUS i 1))) print i;",
+			expected: "{\nvar i = 0;\nwhile (true) {\nprint i;\n(ASSIGN i (PLUS i 1));\n}\n}",
 			wantErr:  false,
 		},
 		{
@@ -1154,7 +1154,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (var x = 1; (LESS_EQUAL x 5); ) print x;",
+			expected: "{\nvar x = 1;\nwhile ((LESS_EQUAL x 5)) print x;\n}",
 			wantErr:  false,
 		},
 		{
@@ -1170,7 +1170,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (; ; ) print \"infinite\";",
+			expected: "while (true) print \"infinite\";",
 			wantErr:  false,
 		},
 		{
@@ -1203,7 +1203,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.RIGHT_BRACE},
 				{Type: lexer.EOF},
 			},
-			expected: "for (var i = 0; (LESS i 3); (ASSIGN i (PLUS i 1))) {\nprint \"iteration\";\nprint i;\n}",
+			expected: "{\nvar i = 0;\nwhile ((LESS i 3)) {\n{\nprint \"iteration\";\nprint i;\n}\n(ASSIGN i (PLUS i 1));\n}\n}",
 			wantErr:  false,
 		},
 		{
@@ -1235,7 +1235,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (var start = (STAR 2 3); (LESS start (PLUS 10 5)); (ASSIGN start (STAR start 2))) print start;",
+			expected: "{\nvar start = (STAR 2 3);\nwhile ((LESS start (PLUS 10 5))) {\nprint start;\n(ASSIGN start (STAR start 2));\n}\n}",
 			wantErr:  false,
 		},
 		{
@@ -1280,7 +1280,7 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.EOF},
 			},
-			expected: "for (var i = 0; (LESS i 2); (ASSIGN i (PLUS i 1))) for (var j = 0; (LESS j 2); (ASSIGN j (PLUS j 1))) print \"nested\";",
+			expected: "{\nvar i = 0;\nwhile ((LESS i 2)) {\n{\nvar j = 0;\nwhile ((LESS j 2)) {\nprint \"nested\";\n(ASSIGN j (PLUS j 1));\n}\n}\n(ASSIGN i (PLUS i 1));\n}\n}",
 			wantErr:  false,
 		},
 

@@ -54,6 +54,8 @@ const (
 	TRUE
 	VAR
 	WHILE
+	BREAK
+	CONTINUE
 
 	EOF
 )
@@ -152,8 +154,8 @@ type Pos struct {
 }
 
 type Token struct {
-	Type      TokenType
-	Lexeme    interface{}
-	StartPos  Pos
-	EndPos    Pos
+	Type     TokenType
+	Lexeme   interface{}
+	StartPos Pos
+	EndPos   Pos
 }

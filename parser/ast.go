@@ -21,6 +21,8 @@ type Visitor interface {
 	VisitWhileStatement(s *WhileStatement) (interface{}, error)
 	VisitForStatement(s *ForStatement) (interface{}, error)
 	VisitLogical(b *Logical) (interface{}, error)
+	VisitContinueStmt(c *ContinueStmt) (interface{}, error)
+	VisitBreakStmt(b *BreakStmt) (interface{}, error)
 }
 
 type Stmt interface {
@@ -62,6 +64,22 @@ type PrintStmt struct {
 
 func (p *PrintStmt) Accept(v Visitor) (interface{}, error) {
 	return v.VisitPrintStmt(p)
+}
+
+type BreakStmt struct {
+	BaseNode
+}
+
+func (b *BreakStmt) Accept(v Visitor) (interface{}, error) {
+	return v.VisitBreakStmt(b)
+}
+
+type ContinueStmt struct {
+	BaseNode
+}
+
+func (c *ContinueStmt) Accept(v Visitor) (interface{}, error) {
+	return v.VisitContinueStmt(c)
 }
 
 type IfStatement struct {

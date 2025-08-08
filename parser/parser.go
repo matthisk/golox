@@ -21,6 +21,7 @@ whileStmt   -> "while" "(" expression ")" statement;
 forStmt     -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement;
 printStmt   -> "print" expression ";";
 block       -> "{" declaration* "}";
+controlStmt -> ( BREAK | CONTINUE ) ";"; // Can only happen while in for/while/if statement body.
 
 expression     → comma ;
 comma          -> ternary ( "," ternary )*;
@@ -38,16 +39,23 @@ primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" | IDENTIFIER ;
 */
 
+type ContextItem struct {
+	Type     string
+	CanBreak bool
+}
+
 type Parser struct {
 	tokens []lexer.Token
 	// State
-	index int
+	index        int
+	contextStack *Stack[*ContextItem]
 }
 
 func New(toks []lexer.Token) *Parser {
 	return &Parser{
-		tokens: toks,
-		index:  0,
+		tokens:       toks,
+		index:        0,
+		contextStack: NewStack[*ContextItem](),
 	}
 }
 
@@ -112,6 +120,40 @@ func (p *Parser) statement() (Stmt, error) {
 
 	if p.match(lexer.LEFT_BRACE) {
 		return p.blockStatement(p.previous().StartPos)
+	}
+
+	if p.match(lexer.BREAK) {
+		if cs, _ := p.contextStack.Peek(); cs == nil || !cs.CanBreak {
+			return nil, errors.New("Illegal jump target")
+		}
+
+		startPos := p.previous().StartPos
+
+		err := p.consume(lexer.SEMICOLON, "Expect ';' after break statement.")
+		if err != nil {
+			return nil, err
+		}
+
+		endPos := p.previous().EndPos
+
+		return &BreakStmt{BaseNode{startPos: startPos, endPos: endPos}}, nil
+	}
+
+	if p.match(lexer.CONTINUE) {
+		if cs, _ := p.contextStack.Peek(); cs == nil || !cs.CanBreak {
+			return nil, errors.New("Illegal jump target")
+		}
+
+		startPos := p.previous().StartPos
+
+		err := p.consume(lexer.SEMICOLON, "Expect ';' after continue statement.")
+		if err != nil {
+			return nil, err
+		}
+
+		endPos := p.previous().EndPos
+
+		return &BreakStmt{BaseNode{startPos: startPos, endPos: endPos}}, nil
 	}
 
 	return p.exprStatement()
@@ -194,6 +236,9 @@ func (p *Parser) blockStatement(startPos lexer.Pos) (Stmt, error) {
 }
 
 func (p *Parser) ifStatement(pos lexer.Pos) (Stmt, error) {
+	p.contextStack.Push(&ContextItem{Type: "if", CanBreak: true})
+	defer p.contextStack.Pop()
+
 	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after if statement.")
 	if err != nil {
 		return nil, err
@@ -234,6 +279,9 @@ func (p *Parser) ifStatement(pos lexer.Pos) (Stmt, error) {
 }
 
 func (p *Parser) whileStatement(pos lexer.Pos) (Stmt, error) {
+	p.contextStack.Push(&ContextItem{Type: "while", CanBreak: true})
+	defer p.contextStack.Pop()
+
 	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after 'while'.")
 	if err != nil {
 		return nil, err

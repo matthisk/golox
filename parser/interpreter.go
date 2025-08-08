@@ -77,7 +77,7 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 	}
 }
 
-func (i Interpreter) VisitBlock(b *Block) (interface{}, error) {
+func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
 	i.env = NewEnvironment(i.env)
 	defer func() { i.env = i.env.enclosing }()
 
@@ -91,7 +91,7 @@ func (i Interpreter) VisitBlock(b *Block) (interface{}, error) {
 	return nil, nil
 }
 
-func (i Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
+func (i *Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 	cond, err := s.cond.Accept(i)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (i Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 	return nil, nil
 }
 
-func (i Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
+func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
 	cond, err := s.cond.Accept(i)
 	if err != nil {
 		return nil, err
@@ -135,12 +135,20 @@ func (i Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error)
 	return nil, nil
 }
 
-func (i Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
-	// We don't implement for statements, they are desugared to a while loop by the parser.
+func (i *Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
+	// We don't implement for statements, they are desugared to a while loop by the parser
 	return nil, nil
 }
 
-func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
+func (i *Interpreter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
+	return nil, nil
+}
+
+func (i *Interpreter) VisitContinueStmt(c *ContinueStmt) (interface{}, error) {
+	return nil, nil
+}
+
+func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	expr, err := node.expr.Accept(i)
 	if err != nil {
 		return nil, err
@@ -150,7 +158,7 @@ func (i Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	return nil, nil
 }
 
-func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
+func (i *Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 	_, err := node.expr.Accept(i)
 	if err != nil {
 		return nil, err
@@ -159,7 +167,7 @@ func (i Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 	return nil, nil
 }
 
-func (i Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
+func (i *Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	if vd.initializer != nil {
 		val, err := vd.initializer.Accept(i)
 		if err != nil {
@@ -174,7 +182,7 @@ func (i Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	return nil, nil
 }
 
-func (i Interpreter) VisitAssign(b *Assign) (interface{}, error) {
+func (i *Interpreter) VisitAssign(b *Assign) (interface{}, error) {
 	value, err := i.evaluate(b.value)
 	if err != nil {
 		return nil, err
@@ -185,7 +193,7 @@ func (i Interpreter) VisitAssign(b *Assign) (interface{}, error) {
 	return value, err
 }
 
-func (i Interpreter) VisitLogical(b *Logical) (interface{}, error) {
+func (i *Interpreter) VisitLogical(b *Logical) (interface{}, error) {
 	left, err := b.left.Accept(i)
 	if err != nil {
 		return nil, err
@@ -206,7 +214,7 @@ func (i Interpreter) VisitLogical(b *Logical) (interface{}, error) {
 	return i.evaluate(b.right)
 }
 
-func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
+func (i *Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 	l, err := i.evaluate(node.left)
 	if err != nil {
 		return nil, err
@@ -269,7 +277,7 @@ func (i Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 	return nil, fmt.Errorf("unsupported binary operation or operand types")
 }
 
-func (i Interpreter) VisitLiteral(node *Literal) (interface{}, error) {
+func (i *Interpreter) VisitLiteral(node *Literal) (interface{}, error) {
 	switch node.token.Type {
 	case lexer.TRUE:
 		return true, nil
@@ -284,7 +292,7 @@ func (i Interpreter) VisitLiteral(node *Literal) (interface{}, error) {
 	}
 }
 
-func (i Interpreter) VisitUnary(node *Unary) (interface{}, error) {
+func (i *Interpreter) VisitUnary(node *Unary) (interface{}, error) {
 	val, err := i.evaluate(node.expr)
 	if err != nil {
 		return nil, err
@@ -300,7 +308,7 @@ func (i Interpreter) VisitUnary(node *Unary) (interface{}, error) {
 	}
 }
 
-func (i Interpreter) VisitComma(node *Comma) (interface{}, error) {
+func (i *Interpreter) VisitComma(node *Comma) (interface{}, error) {
 	_, err := i.evaluate(node.left)
 	if err != nil {
 		return nil, err
@@ -308,11 +316,11 @@ func (i Interpreter) VisitComma(node *Comma) (interface{}, error) {
 	return i.evaluate(node.right)
 }
 
-func (i Interpreter) VisitGrouping(node *Grouping) (interface{}, error) {
+func (i *Interpreter) VisitGrouping(node *Grouping) (interface{}, error) {
 	return i.evaluate(node.expr)
 }
 
-func (i Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
+func (i *Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
 	left, err := i.evaluate(node.left)
 	if err != nil {
 		return nil, err
@@ -323,7 +331,7 @@ func (i Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
 	return i.evaluate(node.right)
 }
 
-func (i Interpreter) VisitVariable(b *Variable) (interface{}, error) {
+func (i *Interpreter) VisitVariable(b *Variable) (interface{}, error) {
 	return i.env.Get(b.name)
 }
 
@@ -372,11 +380,11 @@ func isEqual(l, r interface{}) bool {
 	return false
 }
 
-func (i Interpreter) evaluate(expr Expr) (interface{}, error) {
+func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
 	return expr.Accept(i)
 }
 
-func (i Interpreter) Run(stmts []Stmt) error {
+func (i *Interpreter) Run(stmts []Stmt) error {
 	for _, stmt := range stmts {
 		_, err := stmt.Accept(i)
 		if err != nil {
@@ -387,6 +395,6 @@ func (i Interpreter) Run(stmts []Stmt) error {
 	return nil
 }
 
-func (i Interpreter) EvaluateExpression(expr Expr) (interface{}, error) {
+func (i *Interpreter) EvaluateExpression(expr Expr) (interface{}, error) {
 	return expr.Accept(i)
 }

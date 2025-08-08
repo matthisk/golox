@@ -105,6 +105,14 @@ func (e AstPrinter) VisitForStatement(s *ForStatement) (interface{}, error) {
 	return fmt.Sprintf("for (%s; %s; %s) %s", init, cond, inc, body), nil
 }
 
+func (e AstPrinter) VisitContinueStmt(c *ContinueStmt) (interface{}, error) {
+	return "continue;", nil
+}
+
+func (e AstPrinter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
+	return "break;", nil
+}
+
 func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	initializer, err := vd.initializer.Accept(e)
 	if err != nil {
