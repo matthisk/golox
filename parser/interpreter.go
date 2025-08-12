@@ -118,9 +118,14 @@ func NewInterpreter() *Interpreter {
 }
 
 func NewInterpreterWithPrinter(printer Printer) *Interpreter {
+	globals := NewEnvironment(nil)
+
+	globals.Define("clock", &Clock{})
+
 	return &Interpreter{
 		printer: printer,
-		env:     NewEnvironment(nil),
+		env:     globals,
+		globals: globals,
 	}
 }
 

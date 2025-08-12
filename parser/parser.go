@@ -94,9 +94,7 @@ func (p *Parser) declStatement() (Stmt, error) {
 
 	if p.match(lexer.VAR) {
 		stmt, err = p.varDeclStatement(p.previous().StartPos)
-	}
-
-	if p.match(lexer.FUN) {
+	} else if p.match(lexer.FUN) {
 		stmt, err = p.function(p.previous().StartPos)
 	}
 

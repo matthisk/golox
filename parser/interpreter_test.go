@@ -184,8 +184,90 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"print mixed operators", "print 2 + 3 * 4 == 14;", []string{"true"}, false},
 		{"print complex grouping", "print ((1 + 2) * (3 + 4)) / 7;", []string{"3"}, false},
 
-		// Functions
+		// Functions - Basic Declaration and Calls
 		{"simple function", "fun sayHi(first, last) { print \"Hi, \" + first + \" \" + last + \"!\"; } sayHi(\"Joe\", \"Doe\");", []string{"Hi, Joe Doe!"}, false},
+		{"function no parameters", "fun greet() { print \"Hello World!\"; } greet();", []string{"Hello World!"}, false},
+		{"function single parameter", "fun square(x) { print x * x; } square(5);", []string{"25"}, false},
+		{"function multiple parameters", "fun add(a, b, c) { print a + b + c; } add(1, 2, 3);", []string{"6"}, false},
+		{"function with numbers", "fun multiply(x, y) { print x * y; } multiply(4, 7);", []string{"28"}, false},
+		{"function with strings", "fun concat(a, b) { print a + b; } concat(\"hello\", \" world\");", []string{"hello world"}, false},
+		{"function with booleans", "fun logicalAnd(a, b) { print a && b; } logicalAnd(true, false);", []string{"false"}, false},
+		{"function with mixed types", "fun mixed(num, str, bool) { print num; print str; print bool; } mixed(42, \"test\", true);", []string{"42", "test", "true"}, false},
+
+		// Functions - Multiple Calls
+		{"function called multiple times", "fun count() { print \"counting\"; } count(); count(); count();", []string{"counting", "counting", "counting"}, false},
+		{"function with different arguments", "fun echo(msg) { print msg; } echo(\"first\"); echo(\"second\"); echo(\"third\");", []string{"first", "second", "third"}, false},
+		{"function with arithmetic", "fun calc(x) { print x + 10; } calc(1); calc(2); calc(3);", []string{"11", "12", "13"}, false},
+
+		// Functions - Variable Scope
+		{"function accessing global variable", "var global = \"accessible\"; fun useGlobal() { print global; } useGlobal();", []string{"accessible"}, false},
+		{"function with local variable", "fun withLocal() { var local = \"inside\"; print local; } withLocal();", []string{"inside"}, false},
+		{"function parameter shadows global", "var x = \"global\"; fun shadow(x) { print x; } shadow(\"local\");", []string{"local"}, false},
+		{"global variable after function", "var x = \"global\"; fun shadow(x) { print x; } shadow(\"local\"); print x;", []string{"local", "global"}, false},
+		{"function modifying global", "var counter = 0; fun increment() { counter = counter + 1; print counter; } increment(); increment();", []string{"1", "2"}, false},
+
+		// Functions - Nested Scopes
+		{"function with block scope", "fun withBlock() { var outer = \"outer\"; { var inner = \"inner\"; print outer; print inner; } print outer; } withBlock();", []string{"outer", "inner", "outer"}, false},
+		{"function parameter in nested block", "fun nested(param) { { print param; var local = param + \" modified\"; print local; } } nested(\"test\");", []string{"test", "test modified"}, false},
+
+		// Functions - Control Flow
+		{"function with if statement", "fun conditional(x) { if (x > 0) print \"positive\"; else print \"non-positive\"; } conditional(5); conditional(-3);", []string{"positive", "non-positive"}, false},
+		{"function with while loop", "fun countdown(n) { while (n > 0) { print n; n = n - 1; } } countdown(3);", []string{"3", "2", "1"}, false},
+		{"function with for loop", "fun forLoop(max) { for (var i = 0; i < max; i = i + 1) print i; } forLoop(3);", []string{"0", "1", "2"}, false},
+
+		// Functions - Complex Bodies
+		{"function with multiple statements", "fun complex() { var a = 1; var b = 2; print a + b; print a * b; print a > b; } complex();", []string{"3", "2", "false"}, false},
+		{"function with nested function call", "fun inner() { print \"inner\"; } fun outer() { print \"outer start\"; inner(); print \"outer end\"; } outer();", []string{"outer start", "inner", "outer end"}, false},
+		{"function calculating factorial", "fun factorial(n) { var result = 1; while (n > 1) { result = result * n; n = n - 1; } print result; } factorial(5);", []string{"120"}, false},
+
+		// Functions - Built-in Functions
+		{"clock function exists", "print clock();", []string{}, false}, // We can't predict exact time, so we'll just verify it runs without error
+
+		// Functions - Edge Cases
+		{"empty function body", "fun empty() { } empty();", []string{}, false},
+		{"function with only variable declaration", "fun varOnly() { var x = 42; } varOnly();", []string{}, false},
+		{"function with expression statement", "fun exprStmt() { 1 + 1; } exprStmt();", []string{}, false},
+
+		// Functions - Error Cases (Argument Validation)
+		{"function wrong argument count - too few", "fun needsTwo(a, b) { print a + b; } needsTwo(1);", []string{}, true},
+		{"function wrong argument count - too many", "fun needsOne(x) { print x; } needsOne(1, 2);", []string{}, true},
+		{"function zero params called with args", "fun noParams() { print \"none\"; } noParams(1);", []string{}, true},
+		{"function many params called with few", "fun manyParams(a, b, c, d, e) { print a; } manyParams(1, 2);", []string{}, true},
+		{"function many params called with many", "fun manyParams(a, b, c, d, e) { print a; } manyParams(1, 2, 3, 4, 5, 6);", []string{}, true},
+
+		// Functions - Error Cases (Call Non-Functions)
+		{"call number as function", "var num = 42; num();", []string{}, true},
+		{"call string as function", "var str = \"hello\"; str();", []string{}, true},
+		{"call boolean as function", "var bool = true; bool();", []string{}, true},
+		{"call nil as function", "var nothing = nil; nothing();", []string{}, true},
+
+		// Functions - Error Cases (Undefined Functions)
+		{"call undefined function", "undefinedFunction();", []string{}, true},
+		{"call function before definition", "callEarly(); fun callEarly() { print \"defined later\"; }", []string{}, true},
+
+		// Functions - Recursive Functions
+		{"simple recursive function", "fun fibonacci(n) { if (n <= 1) print n; else { fibonacci(n - 1); fibonacci(n - 2); } } fibonacci(3);", []string{"1", "0", "1"}, false},
+		{"recursive countdown", "fun countdown(n) { if (n > 0) { print n; countdown(n - 1); } } countdown(3);", []string{"3", "2", "1"}, false},
+
+		// Functions - Advanced Scope Tests
+		{"function defines local then accesses global", "var x = \"global\"; fun test() { var x = \"local\"; print x; } test(); print x;", []string{"local", "global"}, false},
+		{"nested function calls with parameters", "fun outer(a) { fun inner(b) { print a + b; } inner(2); } outer(1);", []string{"3"}, false},
+		{"function parameter masking outer parameter", "fun outer(x) { fun inner(x) { print x; } inner(\"inner\"); print x; } outer(\"outer\");", []string{"inner", "outer"}, false},
+
+		// Functions - Multiple Function Definitions
+		{"multiple function definitions", "fun first() { print \"1st\"; } fun second() { print \"2nd\"; } first(); second();", []string{"1st", "2nd"}, false},
+		{"function redefinition", "fun test() { print \"first\"; } fun test() { print \"second\"; } test();", []string{"second"}, false},
+		{"functions calling each other", "fun ping() { print \"ping\"; pong(); } fun pong() { print \"pong\"; } ping();", []string{"ping", "pong"}, false},
+
+		// Functions - Complex Argument Expressions
+		{"function with expression arguments", "fun add(a, b) { print a + b; } add(2 * 3, 4 + 5);", []string{"15"}, false},
+		{"function with function call arguments", "fun double(x) { print x * 2; } fun getValue() { print 5; } double(getValue());", []string{"5", "10"}, false},
+		{"function with ternary arguments", "fun show(x) { print x; } show(true ? \"yes\" : \"no\");", []string{"yes"}, false},
+		{"function with comma expression arguments", "fun first(x) { print x; } first(1, 2, 3);", []string{}, true}, // Should error due to wrong arg count
+
+		// Functions - Built-in Functions Extended
+		{"clock returns number", "var time = clock(); print time >= 0;", []string{"true"}, false},
+		{"clock called multiple times", "var t1 = clock(); var t2 = clock(); print t2 >= t1;", []string{"true"}, false},
 	}
 
 	for _, tt := range tests {
