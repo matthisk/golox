@@ -8,13 +8,37 @@ import (
 	"github.com/matthisk/lox/lexer"
 )
 
-type ControlFlowStmt string
+type ControlFlowStmtT string
 
 const (
-	BREAK    ControlFlowStmt = "BREAK"
-	CONTINUE                 = "CONTINUE"
-	RETURN                   = "RETURN"
+	BREAK    ControlFlowStmtT = "BREAK"
+	CONTINUE                  = "CONTINUE"
+	RETURN                    = "RETURN"
 )
+
+type ControlFlowStmt struct {
+	t ControlFlowStmtT
+	v interface{}
+}
+
+func Break() ControlFlowStmt {
+	return ControlFlowStmt{
+		t: BREAK,
+	}
+}
+
+func Continue() ControlFlowStmt {
+	return ControlFlowStmt{
+		t: CONTINUE,
+	}
+}
+
+func Return(v interface{}) ControlFlowStmt {
+	return ControlFlowStmt{
+		t: RETURN,
+		v: v,
+	}
+}
 
 type LoxCallable interface {
 	Arity() int
@@ -23,6 +47,7 @@ type LoxCallable interface {
 
 type LoxFunction struct {
 	declaration *Function
+	closure     *Environment
 }
 
 func (l *LoxFunction) Arity() int {
@@ -30,7 +55,7 @@ func (l *LoxFunction) Arity() int {
 }
 
 func (l *LoxFunction) Call(i *Interpreter, args []interface{}) (interface{}, error) {
-	env := NewEnvironment(i.globals)
+	env := NewEnvironment(l.closure)
 
 	for j, param := range l.declaration.params {
 		env.Define(param.Lexeme.(string), args[j])
@@ -133,6 +158,7 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 func (i *Interpreter) VisitFunction(f *Function) (interface{}, error) {
 	fun := &LoxFunction{
 		declaration: f,
+		closure:     i.env,
 	}
 	i.env.Define(f.name.Lexeme.(string), fun)
 	return fun, nil
@@ -187,12 +213,14 @@ func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error
 			return nil, err
 		}
 
-		if result == BREAK {
-			break
-		}
+		if c, ok := result.(ControlFlowStmt); ok {
+			if c.t == BREAK {
+				break
+			}
 
-		if result == RETURN {
-			return result, nil
+			if c.t == RETURN {
+				return result, nil
+			}
 		}
 
 		cond, err = s.cond.Accept(i)
@@ -210,22 +238,25 @@ func (i *Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
 }
 
 func (i *Interpreter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
-	return BREAK, nil
+	return Break(), nil
 }
 
 func (i *Interpreter) VisitContinueStmt(c *ContinueStmt) (interface{}, error) {
-	return CONTINUE, nil
+	return Continue(), nil
 }
 
 func (i *Interpreter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
+	var val interface{}
+	var err error
+
 	if r.expr != nil {
-		_, err := r.expr.Accept(i)
+		val, err = r.expr.Accept(i)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return RETURN, nil
+	return Return(val), nil
 }
 
 func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
@@ -518,8 +549,8 @@ func (i *Interpreter) executeBlock(body []Stmt, env *Environment) (interface{}, 
 		}
 
 		// Return statements break the execution of the function body.
-		if res == RETURN {
-			return RETURN, nil
+		if c, ok := res.(ControlFlowStmt); ok && c.t == RETURN {
+			return c.v, nil
 		}
 	}
 

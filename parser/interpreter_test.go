@@ -247,6 +247,7 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 
 		// Functions - Recursive Functions
 		{"simple recursive function", "fun fibonacci(n) { if (n <= 1) print n; else { fibonacci(n - 1); fibonacci(n - 2); } } fibonacci(3);", []string{"1", "0", "1"}, false},
+		{"simple recursive function with return", "fun fibonacci(n) { if (n <= 1) { return n ; } else { return fibonacci(n - 1) + fibonacci(n - 2); } } for (var i = 0; i < 5; i = i + 1) { print fibonacci(i); }", []string{"0", "1", "1", "2", "3"}, false},
 		{"recursive countdown", "fun countdown(n) { if (n > 0) { print n; countdown(n - 1); } } countdown(3);", []string{"3", "2", "1"}, false},
 
 		// Functions - Advanced Scope Tests
@@ -271,6 +272,9 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 
 		// Functions - Return statements
 		{"return statement breaks execution", "fun exitEarly() { print 0; return; print 1; } exitEarly();", []string{"0"}, false},
+
+		// Functions - Local functions and scoping
+		{"Local functions and closures", "fun makeCounter() { var i = 0; fun count() { i = i + 1; print i; } return count; } var counter = makeCounter(); counter(); counter();", []string{"1", "2"}, false},
 	}
 
 	for _, tt := range tests {
