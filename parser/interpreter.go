@@ -3,6 +3,7 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/matthisk/lox/lexer"
 )
@@ -13,6 +14,39 @@ const (
 	BREAK    ControlFlowStmt = "BREAK"
 	CONTINUE                 = "CONTINUE"
 )
+
+type LoxCallable interface {
+	Arity() int
+	Call(i *Interpreter, args []interface{}) (interface{}, error)
+}
+
+type LoxFunction struct {
+	declaration *Function
+}
+
+func (l *LoxFunction) Arity() int {
+	return len(l.declaration.params)
+}
+
+func (l *LoxFunction) Call(i *Interpreter, args []interface{}) (interface{}, error) {
+	env := NewEnvironment(i.globals)
+
+	for j, param := range l.declaration.params {
+		env.Define(param.Lexeme.(string), args[j])
+	}
+
+	return i.executeBlock(l.declaration.body, env)
+}
+
+type Clock struct{}
+
+func (c *Clock) Arity() int {
+	return 0
+}
+
+func (c *Clock) Call(i *Interpreter, args []interface{}) (interface{}, error) {
+	return time.Now().UnixMilli(), nil
+}
 
 type Printer interface {
 	Print(value interface{})
@@ -68,12 +102,18 @@ func (e *Environment) Get(name string) (interface{}, error) {
 type Interpreter struct {
 	printer Printer
 	env     *Environment
+	globals *Environment
 }
 
 func NewInterpreter() *Interpreter {
+	globals := NewEnvironment(nil)
+
+	globals.Define("clock", &Clock{})
+
 	return &Interpreter{
 		printer: DefaultPrinter{},
-		env:     NewEnvironment(nil),
+		env:     globals,
+		globals: globals,
 	}
 }
 
@@ -82,6 +122,14 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 		printer: printer,
 		env:     NewEnvironment(nil),
 	}
+}
+
+func (i *Interpreter) VisitFunction(f *Function) (interface{}, error) {
+	fun := &LoxFunction{
+		declaration: f,
+	}
+	i.env.Define(f.name.Lexeme.(string), fun)
+	return fun, nil
 }
 
 func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
@@ -173,6 +221,33 @@ func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 
 	i.printer.Print(expr)
 	return nil, nil
+}
+
+func (i *Interpreter) VisitCall(c *Call) (interface{}, error) {
+	callee, err := i.evaluate(c.callee)
+	if err != nil {
+		return nil, err
+	}
+
+	var args []interface{}
+	for _, argument := range c.arguments {
+		arg, err := i.evaluate(argument)
+		if err != nil {
+			return nil, err
+		}
+
+		args = append(args, arg)
+	}
+
+	if c, ok := callee.(LoxCallable); ok {
+		if len(args) != c.Arity() {
+			return nil, fmt.Errorf("Expected %d arguments but got %d", c.Arity(), len(args))
+		}
+
+		return c.Call(i, args)
+	} else {
+		return nil, errors.New("Can only call functions and classes.")
+	}
 }
 
 func (i *Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
@@ -414,4 +489,19 @@ func (i *Interpreter) Run(stmts []Stmt) error {
 
 func (i *Interpreter) EvaluateExpression(expr Expr) (interface{}, error) {
 	return expr.Accept(i)
+}
+
+func (i *Interpreter) executeBlock(body []Stmt, env *Environment) (interface{}, error) {
+	oldEnv := i.env
+	i.env = env
+	defer func() { i.env = oldEnv }()
+
+	for j := range body {
+		_, err := body[j].Accept(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
 }

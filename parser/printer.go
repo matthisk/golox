@@ -8,6 +8,33 @@ import (
 
 type AstPrinter struct{}
 
+func (e AstPrinter) VisitCall(c *Call) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e AstPrinter) VisitFunction(f *Function) (interface{}, error) {
+	var params []string
+	for _, param := range f.params {
+		params = append(params, fmt.Sprintf("%s", param.Lexeme))
+	}
+
+	var body strings.Builder
+	body.WriteString("{\n")
+
+	for _, stmt := range f.body {
+		stmtStr, err := stmt.Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		body.WriteString(fmt.Sprintf("%s\n", stmtStr))
+	}
+
+	body.WriteString("}")
+
+	return fmt.Sprintf("fun %s(%s) %s", f.name.Lexeme, strings.Join(params, ", "), body.String()), nil
+}
+
 func (e AstPrinter) VisitBlock(b *Block) (interface{}, error) {
 	var bd strings.Builder
 
@@ -235,9 +262,9 @@ func (e AstPrinter) VisitGrouping(node *Grouping) (interface{}, error) {
 	return fmt.Sprintf("(group %s)", expr), nil
 }
 
-func Print(expr Expr) (string, error) {
+func Print(stmt Stmt) (string, error) {
 	printer := AstPrinter{}
-	res, err := expr.Accept(printer)
+	res, err := stmt.Accept(printer)
 	if err != nil {
 		return "", err
 	}

@@ -5,7 +5,8 @@
       "Bash(go build:*)",
       "Bash(cat:*)",
       "Bash(git add:*)",
-      "Bash(go run:*)"
+      "Bash(go run:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

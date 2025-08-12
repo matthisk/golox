@@ -9,8 +9,11 @@ import (
 /*
 program     → statement* EOF ;
 
-declaration -> varDecl | statement;
+declaration -> funDecl | varDecl | statement;
 
+funDecl -> "fun" function;
+function -> IDENTIFIER "(" parameters* ")" block;
+parameters -> IDENTIFIER ( "," IDENTIFIER )*;
 varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
 
 statement   -> exprStmt | ifStmt | whileStmt | forStmt | printStmt | block;
@@ -34,9 +37,12 @@ comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
 factor         → unary ( ( "/" | "*" ) unary )* ;
 unary          → ( "!" | "-" ) unary
-               | primary ;
+               | call ;
+call           -> primary ( "(" arguments ")" )*;
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" | IDENTIFIER ;
+
+arguments      -> expression ( "," expression )*;
 */
 
 type ContextItem struct {
@@ -88,6 +94,10 @@ func (p *Parser) declStatement() (Stmt, error) {
 
 	if p.match(lexer.VAR) {
 		stmt, err = p.varDeclStatement(p.previous().StartPos)
+	}
+
+	if p.match(lexer.FUN) {
+		stmt, err = p.function(p.previous().StartPos)
 	}
 
 	if stmt == nil {
@@ -157,6 +167,78 @@ func (p *Parser) statement() (Stmt, error) {
 	}
 
 	return p.exprStatement()
+}
+
+func (p *Parser) function(pos lexer.Pos) (Stmt, error) {
+	err := p.consume(lexer.IDENTIFIER, "Expect function name.")
+	if err != nil {
+		return nil, err
+	}
+
+	funName := p.previous()
+
+	err = p.consume(lexer.LEFT_PAREN, "Expect '(' after function name.")
+	if err != nil {
+		return nil, err
+	}
+
+	parameters, err := p.parameters()
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.consume(lexer.RIGHT_PAREN, "Expect ')' after function parameters.")
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.consume(lexer.LEFT_BRACE, "Expect '{' before function body.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.blockStatement(p.previous().StartPos)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Function{
+		BaseNode: BaseNode{
+			startPos: pos,
+			endPos:   p.previous().EndPos,
+		},
+		name:   funName,
+		params: parameters,
+		body:   body.(*Block).stmts,
+	}, nil
+}
+
+func (p *Parser) parameters() ([]lexer.Token, error) {
+	var result []lexer.Token
+
+	// The function has no parameters.
+	if p.check(lexer.RIGHT_PAREN) {
+		return nil, nil
+	}
+
+	for {
+		err := p.consume(lexer.IDENTIFIER, "Expect 'IDENTIFIER'.")
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, p.previous())
+
+		if len(result) > 255 {
+			return nil, errors.New("Can't have more than 255 parameters.")
+		}
+
+		if !p.match(lexer.COMMA) {
+			break
+		}
+	}
+
+	return result, nil
 }
 
 func (p *Parser) varDeclStatement(startPos lexer.Pos) (Stmt, error) {
@@ -686,7 +768,67 @@ func (p *Parser) unary() (Expr, error) {
 		}, nil
 	}
 
-	return p.primary()
+	return p.call()
+}
+
+func (p *Parser) call() (Expr, error) {
+	primary, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(lexer.LEFT_PAREN) {
+		arguments, err := p.arguments()
+		if err != nil {
+			return nil, err
+		}
+
+		err = p.consume(lexer.RIGHT_PAREN, "Expect ')' closing paren after call.")
+		if err != nil {
+			return nil, err
+		}
+
+		primary = &Call{
+			BaseNode: BaseNode{
+				startPos: GetExprStartPos(primary),
+				endPos:   p.previous().EndPos,
+			},
+			callee:    primary,
+			paren:     p.previous(),
+			arguments: arguments,
+		}
+	}
+
+	return primary, nil
+}
+
+func (p *Parser) arguments() ([]Expr, error) {
+	// in case there are no arguments return immediately (i.e. fn()).
+	if p.check(lexer.RIGHT_PAREN) {
+		return nil, nil
+	}
+
+	var result []Expr
+
+	for {
+		// We don't parse an expression here, as the comma expression would consume the comma's separating arguments.
+		expression, err := p.ternary()
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, expression)
+
+		if len(result) > 255 {
+			return nil, errors.New("Can't have more than 255 arguments.")
+		}
+
+		if !p.match(lexer.COMMA) {
+			break
+		}
+	}
+
+	return result, nil
 }
 
 func (p *Parser) primary() (Expr, error) {

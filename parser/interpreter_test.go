@@ -183,6 +183,9 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"print chained comparisons", "print 1 < 2 == 2 > 1;", []string{"true"}, false},
 		{"print mixed operators", "print 2 + 3 * 4 == 14;", []string{"true"}, false},
 		{"print complex grouping", "print ((1 + 2) * (3 + 4)) / 7;", []string{"3"}, false},
+
+		// Functions
+		{"simple function", "fun sayHi(first, last) { print \"Hi, \" + first + \" \" + last + \"!\"; } sayHi(\"Joe\", \"Doe\");", []string{"Hi, Joe Doe!"}, false},
 	}
 
 	for _, tt := range tests {

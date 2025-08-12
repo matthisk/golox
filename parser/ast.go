@@ -23,6 +23,8 @@ type Visitor interface {
 	VisitLogical(b *Logical) (interface{}, error)
 	VisitContinueStmt(c *ContinueStmt) (interface{}, error)
 	VisitBreakStmt(b *BreakStmt) (interface{}, error)
+	VisitCall(c *Call) (interface{}, error)
+	VisitFunction(f *Function) (interface{}, error)
 }
 
 type Stmt interface {
@@ -103,6 +105,17 @@ func (s *WhileStatement) Accept(v Visitor) (interface{}, error) {
 	return v.VisitWhileStatement(s)
 }
 
+type Function struct {
+	BaseNode
+	name   lexer.Token
+	params []lexer.Token
+	body   []Stmt
+}
+
+func (f *Function) Accept(v Visitor) (interface{}, error) {
+	return v.VisitFunction(f)
+}
+
 type ForStatement struct {
 	BaseNode
 	initializer Stmt // Can be VarDecl, ExprStmt, or nil
@@ -138,6 +151,17 @@ func (b *BaseNode) GetEndPos() lexer.Pos {
 func (b *BaseNode) SetPos(start, end lexer.Pos) {
 	b.startPos = start
 	b.endPos = end
+}
+
+type Call struct {
+	BaseNode
+	callee    Expr
+	paren     lexer.Token
+	arguments []Expr
+}
+
+func (c *Call) Accept(v Visitor) (interface{}, error) {
+	return v.VisitCall(c)
 }
 
 type Binary struct {
