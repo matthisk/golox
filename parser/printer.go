@@ -8,6 +8,14 @@ import (
 
 type AstPrinter struct{}
 
+func (e AstPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
+	expr, err := r.expr.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("return %s;", expr), nil
+}
+
 func (e AstPrinter) VisitCall(c *Call) (interface{}, error) {
 	//TODO implement me
 	panic("implement me")

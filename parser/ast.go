@@ -25,6 +25,7 @@ type Visitor interface {
 	VisitBreakStmt(b *BreakStmt) (interface{}, error)
 	VisitCall(c *Call) (interface{}, error)
 	VisitFunction(f *Function) (interface{}, error)
+	VisitReturnStmt(r *ReturnStmt) (interface{}, error)
 }
 
 type Stmt interface {
@@ -66,6 +67,15 @@ type PrintStmt struct {
 
 func (p *PrintStmt) Accept(v Visitor) (interface{}, error) {
 	return v.VisitPrintStmt(p)
+}
+
+type ReturnStmt struct {
+	BaseNode
+	expr Expr
+}
+
+func (r *ReturnStmt) Accept(v Visitor) (interface{}, error) {
+	return v.VisitReturnStmt(r)
 }
 
 type BreakStmt struct {

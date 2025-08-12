@@ -130,6 +130,10 @@ func (p *Parser) statement() (Stmt, error) {
 		return p.blockStatement(p.previous().StartPos)
 	}
 
+	if p.match(lexer.RETURN) {
+		return p.returnStmt(p.previous().StartPos)
+	}
+
 	if p.match(lexer.BREAK) {
 		if cs, _ := p.contextStack.Peek(); cs == nil || !cs.CanBreak {
 			return nil, errors.New("Illegal jump target")
@@ -477,6 +481,32 @@ func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
 	}
 
 	return body, nil
+}
+
+func (p *Parser) returnStmt(pos lexer.Pos) (Stmt, error) {
+	var expression Expr
+	var err error
+
+	if !p.check(lexer.SEMICOLON) {
+		expression, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = p.consume(lexer.SEMICOLON, "Expect ';' after statement.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ReturnStmt{
+		BaseNode: BaseNode{
+			startPos: pos,
+			endPos:   p.previous().EndPos,
+		},
+		expr: expression,
+	}, nil
+
 }
 
 func (p *Parser) exprStatement() (Stmt, error) {

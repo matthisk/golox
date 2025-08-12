@@ -13,6 +13,7 @@ type ControlFlowStmt string
 const (
 	BREAK    ControlFlowStmt = "BREAK"
 	CONTINUE                 = "CONTINUE"
+	RETURN                   = "RETURN"
 )
 
 type LoxCallable interface {
@@ -45,7 +46,7 @@ func (c *Clock) Arity() int {
 }
 
 func (c *Clock) Call(i *Interpreter, args []interface{}) (interface{}, error) {
-	return time.Now().UnixMilli(), nil
+	return float64(time.Now().UnixMilli()), nil
 }
 
 type Printer interface {
@@ -147,7 +148,7 @@ func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
 			return nil, err
 		}
 
-		// in case we encounter a break or continue statement we return back to
+		// in case we encounter a return, break or continue statement we return back to
 		// the control flow statement.
 		if result != nil {
 			return result, nil
@@ -164,16 +165,10 @@ func (i *Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 	}
 
 	if isTruthy(cond) {
-		_, err := s.ifBlock.Accept(i)
-		if err != nil {
-			return nil, err
-		}
+		return s.ifBlock.Accept(i)
 	} else {
 		if s.elseBlock != nil {
-			_, err := s.elseBlock.Accept(i)
-			if err != nil {
-				return nil, err
-			}
+			return s.elseBlock.Accept(i)
 		}
 	}
 
@@ -196,6 +191,10 @@ func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error
 			break
 		}
 
+		if result == RETURN {
+			return result, nil
+		}
+
 		cond, err = s.cond.Accept(i)
 		if err != nil {
 			return nil, err
@@ -216,6 +215,17 @@ func (i *Interpreter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
 
 func (i *Interpreter) VisitContinueStmt(c *ContinueStmt) (interface{}, error) {
 	return CONTINUE, nil
+}
+
+func (i *Interpreter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
+	if r.expr != nil {
+		_, err := r.expr.Accept(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return RETURN, nil
 }
 
 func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
@@ -502,9 +512,14 @@ func (i *Interpreter) executeBlock(body []Stmt, env *Environment) (interface{}, 
 	defer func() { i.env = oldEnv }()
 
 	for j := range body {
-		_, err := body[j].Accept(i)
+		res, err := body[j].Accept(i)
 		if err != nil {
 			return nil, err
+		}
+
+		// Return statements break the execution of the function body.
+		if res == RETURN {
+			return RETURN, nil
 		}
 	}
 

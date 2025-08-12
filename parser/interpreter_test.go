@@ -268,6 +268,9 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		// Functions - Built-in Functions Extended
 		{"clock returns number", "var time = clock(); print time >= 0;", []string{"true"}, false},
 		{"clock called multiple times", "var t1 = clock(); var t2 = clock(); print t2 >= t1;", []string{"true"}, false},
+
+		// Functions - Return statements
+		{"return statement breaks execution", "fun exitEarly() { print 0; return; print 1; } exitEarly();", []string{"0"}, false},
 	}
 
 	for _, tt := range tests {
