@@ -3,15 +3,17 @@ package parser
 import (
 	"errors"
 	"fmt"
+
 	"github.com/matthisk/lox/lexer"
 )
 
 /*
 program     → statement* EOF ;
 
-declaration -> funDecl | varDecl | statement;
+declaration -> funDecl | classDecl | varDecl | statement;
 
 funDecl -> "fun" function;
+classDecl -> "class" IDENTIFIER "{" function* "}";
 function -> IDENTIFIER "(" parameters* ")" block;
 parameters -> IDENTIFIER ( "," IDENTIFIER )*;
 varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
@@ -95,7 +97,9 @@ func (p *Parser) declStatement() (Stmt, error) {
 	if p.match(lexer.VAR) {
 		stmt, err = p.varDeclStatement()
 	} else if p.match(lexer.FUN) {
-		stmt, err = p.function()
+		stmt, err = p.function("function")
+	} else if p.match(lexer.CLASS) {
+		stmt, err = p.class()
 	}
 
 	if stmt == nil {
@@ -171,16 +175,55 @@ func (p *Parser) statement() (Stmt, error) {
 	return p.exprStatement()
 }
 
-func (p *Parser) function() (Stmt, error) {
+func (p *Parser) class() (Stmt, error) {
+	startPos := p.previous().StartPos
+
+	err := p.consume(lexer.IDENTIFIER, "Expect class identifier")
+	if err != nil {
+		return nil, err
+	}
+
+	name := p.previous()
+
+	err = p.consume(lexer.LEFT_BRACE, "Expect '{' after class.")
+	if err != nil {
+		return nil, err
+	}
+
+	var methods []*Function
+	for p.peek().Type != lexer.RIGHT_BRACE && !p.atEnd() {
+		fun, err := p.function("method")
+		if err != nil {
+			return nil, err
+		}
+		methods = append(methods, fun.(*Function))
+	}
+
+	err = p.consume(lexer.RIGHT_BRACE, "Expect '}' after class.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ClassStatement{
+		BaseNode: BaseNode{
+			startPos: startPos,
+			endPos:   p.previous().EndPos,
+		},
+		name:    name,
+		methods: methods,
+	}, nil
+}
+
+func (p *Parser) function(funType string) (Stmt, error) {
 	pos := p.previous().StartPos
-	err := p.consume(lexer.IDENTIFIER, "Expect function name.")
+	err := p.consume(lexer.IDENTIFIER, fmt.Sprintf("Expect %s name.", funType))
 	if err != nil {
 		return nil, err
 	}
 
 	funName := p.previous()
 
-	err = p.consume(lexer.LEFT_PAREN, "Expect '(' after function name.")
+	err = p.consume(lexer.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", funType))
 	if err != nil {
 		return nil, err
 	}
@@ -190,12 +233,12 @@ func (p *Parser) function() (Stmt, error) {
 		return nil, err
 	}
 
-	err = p.consume(lexer.RIGHT_PAREN, "Expect ')' after function parameters.")
+	err = p.consume(lexer.RIGHT_PAREN, fmt.Sprintf("Expect ')' after %s parameters.", funType))
 	if err != nil {
 		return nil, err
 	}
 
-	err = p.consume(lexer.LEFT_BRACE, "Expect '{' before function body.")
+	err = p.consume(lexer.LEFT_BRACE, fmt.Sprintf("Expect '{' before %s body.", funType))
 	if err != nil {
 		return nil, err
 	}

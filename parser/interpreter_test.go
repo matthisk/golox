@@ -280,6 +280,9 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 
 		// Redeclaring errors
 		{"Re-declaring in a scope not allowed", "fun scope() { var a = 1; var a = 2; }", []string{}, true},
+
+		// Classes
+		{"Print a class' name", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall;", []string{"&{RoundBall}"}, false},
 	}
 
 	for _, tt := range tests {

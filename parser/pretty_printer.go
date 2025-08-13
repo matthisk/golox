@@ -19,6 +19,11 @@ func (p *PrettyPrinter) getIndent() string {
 	return strings.Repeat("  ", p.indent)
 }
 
+func (p *PrettyPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *PrettyPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 	if r.expr == nil {
 		return p.getIndent() + "return;", nil

@@ -26,6 +26,7 @@ type Visitor interface {
 	VisitCall(c *Call) (interface{}, error)
 	VisitFunction(f *Function) (interface{}, error)
 	VisitReturnStmt(r *ReturnStmt) (interface{}, error)
+	VisitClass(s *ClassStatement) (interface{}, error)
 }
 
 type Stmt interface {
@@ -113,6 +114,16 @@ type WhileStatement struct {
 
 func (s *WhileStatement) Accept(v Visitor) (interface{}, error) {
 	return v.VisitWhileStatement(s)
+}
+
+type ClassStatement struct {
+	BaseNode
+	name    lexer.Token
+	methods []*Function
+}
+
+func (s *ClassStatement) Accept(v Visitor) (interface{}, error) {
+	return v.VisitClass(s)
 }
 
 type Function struct {

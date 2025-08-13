@@ -18,6 +18,15 @@ type Resolver struct {
 	scopes          Stack[map[string]bool]
 }
 
+func (r *Resolver) VisitClass(s *ClassStatement) (interface{}, error) {
+	err := r.declare(s.name.Lexeme.(string))
+	if err != nil {
+		return nil, err
+	}
+	r.define(s.name.Lexeme.(string))
+	return nil, nil
+}
+
 func NewResolver(interpreter *Interpreter) *Resolver {
 	return &Resolver{interpreter: interpreter, currentFunction: NONE, scopes: Stack[map[string]bool]{}}
 }

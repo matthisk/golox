@@ -2,8 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"github.com/matthisk/lox/lexer"
 	"strings"
+
+	"github.com/matthisk/lox/lexer"
 )
 
 type AstPrinter struct{}
@@ -14,6 +15,11 @@ func (e AstPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 		return nil, err
 	}
 	return fmt.Sprintf("return %s;", expr), nil
+}
+
+func (e AstPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (e AstPrinter) VisitCall(c *Call) (interface{}, error) {

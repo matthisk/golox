@@ -45,6 +45,14 @@ type LoxCallable interface {
 	Call(i *Interpreter, args []interface{}) (interface{}, error)
 }
 
+type LoxClass struct {
+	name string
+}
+
+func (l *LoxClass) toString() string {
+	return l.name
+}
+
 type LoxFunction struct {
 	declaration *Function
 	closure     *Environment
@@ -142,6 +150,17 @@ type Interpreter struct {
 	env     *Environment
 	globals *Environment
 	locals  map[Expr]int
+}
+
+func (i *Interpreter) VisitClass(s *ClassStatement) (interface{}, error) {
+	i.env.Define(s.name.Lexeme.(string), nil)
+	class := &LoxClass{name: s.name.Lexeme.(string)}
+	err := i.env.Assign(s.name.Lexeme.(string), class)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func NewInterpreter() *Interpreter {
