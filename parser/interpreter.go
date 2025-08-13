@@ -40,6 +40,14 @@ func Return(v interface{}) ControlFlowStmt {
 	}
 }
 
+type LoxInstance struct {
+	class *LoxClass
+}
+
+func (l *LoxInstance) ToString() string {
+	return fmt.Sprintf("%s instance", l.class.name)
+}
+
 type LoxCallable interface {
 	Arity() int
 	Call(i *Interpreter, args []interface{}) (interface{}, error)
@@ -49,7 +57,18 @@ type LoxClass struct {
 	name string
 }
 
-func (l *LoxClass) toString() string {
+func (l *LoxClass) Arity() int {
+	return 0
+}
+
+func (l *LoxClass) Call(i *Interpreter, args []interface{}) (interface{}, error) {
+	instance := &LoxInstance{
+		class: l,
+	}
+	return instance, nil
+}
+
+func (l *LoxClass) ToString() string {
 	return l.name
 }
 

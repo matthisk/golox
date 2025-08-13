@@ -282,7 +282,8 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"Re-declaring in a scope not allowed", "fun scope() { var a = 1; var a = 2; }", []string{}, true},
 
 		// Classes
-		{"Print a class' name", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall;", []string{"&{RoundBall}"}, false},
+		{"Print a class' name", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall;", []string{"RoundBall"}, false},
+		{"Instantiate a class", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall();", []string{"RoundBall instance"}, false},
 	}
 
 	for _, tt := range tests {
@@ -472,7 +473,11 @@ type SpyPrinter struct {
 }
 
 func (s *SpyPrinter) Print(value interface{}) {
-	s.log = append(s.log, fmt.Sprintf("%v", value))
+	if ii, ok := value.(interface{ ToString() string }); ok {
+		s.log = append(s.log, ii.ToString())
+	} else {
+		s.log = append(s.log, fmt.Sprintf("%v", value))
+	}
 }
 
 // SliceEqual compares two slices for equality.
