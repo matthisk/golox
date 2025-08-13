@@ -93,9 +93,9 @@ func (p *Parser) declStatement() (Stmt, error) {
 	var err error
 
 	if p.match(lexer.VAR) {
-		stmt, err = p.varDeclStatement(p.previous().StartPos)
+		stmt, err = p.varDeclStatement()
 	} else if p.match(lexer.FUN) {
-		stmt, err = p.function(p.previous().StartPos)
+		stmt, err = p.function()
 	}
 
 	if stmt == nil {
@@ -111,27 +111,27 @@ func (p *Parser) declStatement() (Stmt, error) {
 
 func (p *Parser) statement() (Stmt, error) {
 	if p.match(lexer.PRINT) {
-		return p.printStatement(p.previous().StartPos)
+		return p.printStatement()
 	}
 
 	if p.match(lexer.IF) {
-		return p.ifStatement(p.previous().StartPos)
+		return p.ifStatement()
 	}
 
 	if p.match(lexer.WHILE) {
-		return p.whileStatement(p.previous().StartPos)
+		return p.whileStatement()
 	}
 
 	if p.match(lexer.FOR) {
-		return p.forStatement(p.previous().StartPos)
+		return p.forStatement()
 	}
 
 	if p.match(lexer.LEFT_BRACE) {
-		return p.blockStatement(p.previous().StartPos)
+		return p.blockStatement()
 	}
 
 	if p.match(lexer.RETURN) {
-		return p.returnStmt(p.previous().StartPos)
+		return p.returnStmt()
 	}
 
 	if p.match(lexer.BREAK) {
@@ -171,7 +171,8 @@ func (p *Parser) statement() (Stmt, error) {
 	return p.exprStatement()
 }
 
-func (p *Parser) function(pos lexer.Pos) (Stmt, error) {
+func (p *Parser) function() (Stmt, error) {
+	pos := p.previous().StartPos
 	err := p.consume(lexer.IDENTIFIER, "Expect function name.")
 	if err != nil {
 		return nil, err
@@ -199,7 +200,7 @@ func (p *Parser) function(pos lexer.Pos) (Stmt, error) {
 		return nil, err
 	}
 
-	body, err := p.blockStatement(p.previous().StartPos)
+	body, err := p.blockStatement()
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +244,8 @@ func (p *Parser) parameters() ([]lexer.Token, error) {
 	return result, nil
 }
 
-func (p *Parser) varDeclStatement(startPos lexer.Pos) (Stmt, error) {
+func (p *Parser) varDeclStatement() (Stmt, error) {
+	startPos := p.previous().StartPos
 	var initializer Expr
 	err := p.consume(lexer.IDENTIFIER, "Expect variable name.")
 	if err != nil {
@@ -274,7 +276,8 @@ func (p *Parser) varDeclStatement(startPos lexer.Pos) (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) printStatement(startPos lexer.Pos) (Stmt, error) {
+func (p *Parser) printStatement() (Stmt, error) {
+	startPos := p.previous().StartPos
 	expr, err := p.expression()
 	if err != nil {
 		return nil, err
@@ -294,7 +297,8 @@ func (p *Parser) printStatement(startPos lexer.Pos) (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) blockStatement(startPos lexer.Pos) (Stmt, error) {
+func (p *Parser) blockStatement() (Stmt, error) {
+	startPos := p.previous().StartPos
 	var result []Stmt
 	for !p.check(lexer.RIGHT_BRACE) && !p.atEnd() {
 		stmt, err := p.declStatement()
@@ -319,7 +323,8 @@ func (p *Parser) blockStatement(startPos lexer.Pos) (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) ifStatement(pos lexer.Pos) (Stmt, error) {
+func (p *Parser) ifStatement() (Stmt, error) {
+	pos := p.previous().StartPos
 	p.contextStack.Push(&ContextItem{Type: "if", CanBreak: true})
 	defer p.contextStack.Pop()
 
@@ -362,7 +367,8 @@ func (p *Parser) ifStatement(pos lexer.Pos) (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) whileStatement(pos lexer.Pos) (Stmt, error) {
+func (p *Parser) whileStatement() (Stmt, error) {
+	pos := p.previous().StartPos
 	p.contextStack.Push(&ContextItem{Type: "while", CanBreak: true})
 	defer p.contextStack.Pop()
 
@@ -396,7 +402,8 @@ func (p *Parser) whileStatement(pos lexer.Pos) (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
+func (p *Parser) forStatement() (Stmt, error) {
+	pos := p.previous().StartPos
 	p.contextStack.Push(&ContextItem{Type: "for", CanBreak: true})
 	defer p.contextStack.Pop()
 
@@ -410,7 +417,7 @@ func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
 	if p.match(lexer.SEMICOLON) {
 		initializer = nil
 	} else if p.match(lexer.VAR) {
-		initializer, err = p.varDeclStatement(p.previous().StartPos)
+		initializer, err = p.varDeclStatement()
 		if err != nil {
 			return nil, err
 		}
@@ -483,7 +490,8 @@ func (p *Parser) forStatement(pos lexer.Pos) (Stmt, error) {
 	return body, nil
 }
 
-func (p *Parser) returnStmt(pos lexer.Pos) (Stmt, error) {
+func (p *Parser) returnStmt() (Stmt, error) {
+	pos := p.previous().StartPos
 	var expression Expr
 	var err error
 
