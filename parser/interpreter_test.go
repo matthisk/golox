@@ -11,7 +11,7 @@ import (
 func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 	tests := []struct {
 		name    string
-		expr    string
+		input   string
 		logs    []string
 		wantErr bool
 	}{
@@ -177,6 +177,7 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"print large number", "print 999999;", []string{"999999"}, false},
 		{"print decimal", "print 3.14159;", []string{"3.14159"}, false},
 		{"print simple string", "print \"simple string\";", []string{"simple string"}, false},
+		{"returning from top-level code", "return \"simple string\";", []string{}, true},
 
 		// Complex expressions in print statements
 		{"print nested ternary", "print true ? (false ? 1 : 2) : 3;", []string{"2"}, false},
@@ -262,7 +263,7 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 
 		// Functions - Complex Argument Expressions
 		{"function with expression arguments", "fun add(a, b) { print a + b; } add(2 * 3, 4 + 5);", []string{"15"}, false},
-		{"function with function call arguments", "fun double(x) { print x * 2; } fun getValue() { print 5; } double(getValue());", []string{"5", "10"}, false},
+		{"function with function call arguments", "fun double(x) { print x * 2; } fun getValue() { return 5; } double(getValue());", []string{"10"}, false},
 		{"function with ternary arguments", "fun show(x) { print x; } show(true ? \"yes\" : \"no\");", []string{"yes"}, false},
 		{"function with comma expression arguments", "fun first(x) { print x; } first(1, 2, 3);", []string{}, true}, // Should error due to wrong arg count
 
@@ -275,11 +276,15 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 
 		// Functions - Local functions and scoping
 		{"Local functions and closures", "fun makeCounter() { var i = 0; fun count() { i = i + 1; print i; } return count; } var counter = makeCounter(); counter(); counter();", []string{"1", "2"}, false},
+		{"Disallow dynamic scoping", `var a = "global"; { fun showA() { print a; } showA(); var a = "block"; showA(); }`, []string{"global", "global"}, false},
+
+		// Redeclaring errors
+		{"Re-declaring in a scope not allowed", "fun scope() { var a = 1; var a = 2; }", []string{}, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logs, err := runLox(tt.expr)
+			logs, err := runLox(tt.input)
 
 			if tt.wantErr {
 				if err == nil {
@@ -445,6 +450,12 @@ func runLox(source string) ([]string, error) {
 
 	printer := &SpyPrinter{}
 	interpreter := NewInterpreterWithPrinter(printer)
+	resolver := NewResolver(interpreter)
+	_, err = resolver.resolveStmts(stmts)
+	if err != nil {
+		return nil, err
+	}
+
 	err = interpreter.Run(stmts)
 	if err != nil {
 		return nil, err

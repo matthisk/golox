@@ -49,3 +49,8 @@ func (s *Stack[T]) IsEmpty() bool {
 func (s *Stack[T]) Size() int {
 	return len(s.items)
 }
+
+// Get returns an entry from the stack without removing it
+func (s *Stack[T]) Get(i int) T {
+	return s.items[i]
+}

@@ -125,10 +125,23 @@ func (e *Environment) Get(name string) (interface{}, error) {
 	return nil, fmt.Errorf("undefined variable '%s'", name)
 }
 
+func (e *Environment) GetAt(depth int, name string) (interface{}, error) {
+	env := e
+	for d := 0; d < depth; d++ {
+		env = env.enclosing
+		if env == nil {
+			return nil, fmt.Errorf("no env at depth %d", depth)
+		}
+	}
+
+	return env.Get(name)
+}
+
 type Interpreter struct {
 	printer Printer
 	env     *Environment
 	globals *Environment
+	locals  map[Expr]int
 }
 
 func NewInterpreter() *Interpreter {
@@ -140,6 +153,7 @@ func NewInterpreter() *Interpreter {
 		printer: DefaultPrinter{},
 		env:     globals,
 		globals: globals,
+		locals:  make(map[Expr]int),
 	}
 }
 
@@ -152,6 +166,7 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 		printer: printer,
 		env:     globals,
 		globals: globals,
+		locals:  make(map[Expr]int),
 	}
 }
 
@@ -161,7 +176,7 @@ func (i *Interpreter) VisitFunction(f *Function) (interface{}, error) {
 		closure:     i.env,
 	}
 	i.env.Define(f.name.Lexeme.(string), fun)
-	return fun, nil
+	return nil, nil
 }
 
 func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
@@ -470,7 +485,10 @@ func (i *Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
 }
 
 func (i *Interpreter) VisitVariable(b *Variable) (interface{}, error) {
-	return i.env.Get(b.name)
+	if depth, ok := i.locals[b]; ok {
+		return i.env.GetAt(depth, b.name)
+	}
+	return i.globals.Get(b.name)
 }
 
 func isNumber(op lexer.TokenType, l, r interface{}) error {
@@ -555,4 +573,8 @@ func (i *Interpreter) executeBlock(body []Stmt, env *Environment) (interface{}, 
 	}
 
 	return nil, nil
+}
+
+func (i *Interpreter) resolve(expr Expr, depth int) {
+	i.locals[expr] = depth
 }
