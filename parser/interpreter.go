@@ -3,7 +3,6 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/matthisk/lox/lexer"
 )
@@ -40,94 +39,6 @@ func Return(v interface{}) ControlFlowStmt {
 	}
 }
 
-type LoxInstance struct {
-	class  *LoxClass
-	fields map[string]interface{}
-}
-
-func NewLoxInstance(class *LoxClass) *LoxInstance {
-	return &LoxInstance{
-		class:  class,
-		fields: make(map[string]interface{}),
-	}
-}
-
-func (l *LoxInstance) ToString() string {
-	return fmt.Sprintf("%s instance", l.class.name)
-}
-
-func (l *LoxInstance) Get(property string) (interface{}, error) {
-	if v, ok := l.fields[property]; ok {
-		return v, nil
-	}
-
-	if m := l.class.FindMethod(property); m != nil {
-		return m, nil
-	}
-
-	return nil, fmt.Errorf("undefined property %s", property)
-}
-
-func (l *LoxInstance) Set(property string, val interface{}) {
-	l.fields[property] = val
-}
-
-type LoxCallable interface {
-	Arity() int
-	Call(i *Interpreter, args []interface{}) (interface{}, error)
-}
-
-type LoxClass struct {
-	name    string
-	methods map[string]LoxCallable
-}
-
-func (l *LoxClass) Arity() int {
-	return 0
-}
-
-func (l *LoxClass) Call(i *Interpreter, args []interface{}) (interface{}, error) {
-	instance := NewLoxInstance(l)
-	return instance, nil
-}
-
-func (l *LoxClass) ToString() string {
-	return l.name
-}
-
-func (l *LoxClass) FindMethod(property string) LoxCallable {
-	return l.methods[property]
-}
-
-type LoxFunction struct {
-	declaration *Function
-	closure     *Environment
-}
-
-func (l *LoxFunction) Arity() int {
-	return len(l.declaration.params)
-}
-
-func (l *LoxFunction) Call(i *Interpreter, args []interface{}) (interface{}, error) {
-	env := NewEnvironment(l.closure)
-
-	for j, param := range l.declaration.params {
-		env.Define(param.Lexeme.(string), args[j])
-	}
-
-	return i.executeBlock(l.declaration.body, env)
-}
-
-type Clock struct{}
-
-func (c *Clock) Arity() int {
-	return 0
-}
-
-func (c *Clock) Call(i *Interpreter, args []interface{}) (interface{}, error) {
-	return float64(time.Now().UnixMilli()), nil
-}
-
 type Printer interface {
 	Print(value interface{})
 }
@@ -138,64 +49,37 @@ func (p DefaultPrinter) Print(value interface{}) {
 	fmt.Println(value)
 }
 
-type Environment struct {
-	enclosing *Environment
-	values    map[string]interface{}
-}
-
-func NewEnvironment(enclosing *Environment) *Environment {
-	return &Environment{
-		enclosing: enclosing,
-		values:    make(map[string]interface{}),
-	}
-}
-
-func (e *Environment) Define(name string, val interface{}) {
-	e.values[name] = val
-}
-
-func (e *Environment) Assign(name string, val interface{}) error {
-	if _, ok := e.values[name]; ok {
-		e.values[name] = val
-		return nil
-	}
-
-	if e.enclosing != nil {
-		return e.enclosing.Assign(name, val)
-	}
-
-	return errors.New("Undefined variable '" + name + "'.")
-}
-
-func (e *Environment) Get(name string) (interface{}, error) {
-	if val, ok := e.values[name]; ok {
-		return val, nil
-	}
-
-	if e.enclosing != nil {
-		return e.enclosing.Get(name)
-	}
-
-	return nil, fmt.Errorf("undefined variable '%s'", name)
-}
-
-func (e *Environment) GetAt(depth int, name string) (interface{}, error) {
-	env := e
-	for d := 0; d < depth; d++ {
-		env = env.enclosing
-		if env == nil {
-			return nil, fmt.Errorf("no env at depth %d", depth)
-		}
-	}
-
-	return env.Get(name)
-}
-
 type Interpreter struct {
 	printer Printer
 	env     *Environment
 	globals *Environment
 	locals  map[Expr]int
+}
+
+func NewInterpreter() *Interpreter {
+	globals := NewEnvironment(nil)
+
+	globals.Define("clock", &Clock{})
+
+	return &Interpreter{
+		printer: DefaultPrinter{},
+		env:     globals,
+		globals: globals,
+		locals:  make(map[Expr]int),
+	}
+}
+
+func NewInterpreterWithPrinter(printer Printer) *Interpreter {
+	globals := NewEnvironment(nil)
+
+	globals.Define("clock", &Clock{})
+
+	return &Interpreter{
+		printer: printer,
+		env:     globals,
+		globals: globals,
+		locals:  make(map[Expr]int),
+	}
 }
 
 func (i *Interpreter) VisitSet(s *SetExpr) (interface{}, error) {
@@ -253,32 +137,6 @@ func (i *Interpreter) VisitClass(s *ClassStatement) (interface{}, error) {
 	}
 
 	return nil, nil
-}
-
-func NewInterpreter() *Interpreter {
-	globals := NewEnvironment(nil)
-
-	globals.Define("clock", &Clock{})
-
-	return &Interpreter{
-		printer: DefaultPrinter{},
-		env:     globals,
-		globals: globals,
-		locals:  make(map[Expr]int),
-	}
-}
-
-func NewInterpreterWithPrinter(printer Printer) *Interpreter {
-	globals := NewEnvironment(nil)
-
-	globals.Define("clock", &Clock{})
-
-	return &Interpreter{
-		printer: printer,
-		env:     globals,
-		globals: globals,
-		locals:  make(map[Expr]int),
-	}
 }
 
 func (i *Interpreter) VisitFunction(f *Function) (interface{}, error) {
