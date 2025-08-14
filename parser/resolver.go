@@ -10,6 +10,7 @@ type FunctionType = string
 const (
 	NONE     FunctionType = "NONE"
 	FUNCTION FunctionType = "FUNCTION"
+	METHOD   FunctionType = "METHOD"
 )
 
 type Resolver struct {
@@ -18,12 +19,28 @@ type Resolver struct {
 	scopes          Stack[map[string]bool]
 }
 
+func (r *Resolver) VisitSet(s *SetExpr) (interface{}, error) {
+	_, err := r.resolveExpr(s.object)
+	if err != nil {
+		return nil, err
+	}
+	return r.resolveExpr(s.value)
+}
+
 func (r *Resolver) VisitClass(s *ClassStatement) (interface{}, error) {
 	err := r.declare(s.name.Lexeme.(string))
 	if err != nil {
 		return nil, err
 	}
 	r.define(s.name.Lexeme.(string))
+
+	for _, method := range s.methods {
+		err := r.resolveFunction(method, METHOD)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return nil, nil
 }
 
@@ -67,6 +84,10 @@ func (r *Resolver) VisitComma(node *Comma) (interface{}, error) {
 
 func (r *Resolver) VisitGrouping(node *Grouping) (interface{}, error) {
 	return r.resolveExpr(node.expr)
+}
+
+func (r *Resolver) VisitGet(g *GetExpr) (interface{}, error) {
+	return r.resolveExpr(g.from)
 }
 
 func (r *Resolver) VisitTernary(b *Ternary) (interface{}, error) {
@@ -214,7 +235,7 @@ func (r *Resolver) VisitFunction(f *Function) (interface{}, error) {
 	}
 	r.define(f.name.Lexeme.(string))
 
-	err = r.resolveFunction(f)
+	err = r.resolveFunction(f, FUNCTION)
 	if err != nil {
 		return nil, err
 	}
@@ -222,9 +243,9 @@ func (r *Resolver) VisitFunction(f *Function) (interface{}, error) {
 	return nil, nil
 }
 
-func (r *Resolver) resolveFunction(f *Function) error {
+func (r *Resolver) resolveFunction(f *Function, t FunctionType) error {
 	enclosingFunction := r.currentFunction
-	r.currentFunction = FUNCTION
+	r.currentFunction = t
 	defer func() { r.currentFunction = enclosingFunction }()
 
 	r.beginScope()

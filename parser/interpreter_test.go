@@ -284,6 +284,8 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		// Classes
 		{"Print a class' name", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall;", []string{"RoundBall"}, false},
 		{"Instantiate a class", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall();", []string{"RoundBall instance"}, false},
+		{"Set a property on a class", "class RoundBall { } var ball = RoundBall(); ball.size = 5; print ball.size;", []string{"5"}, false},
+		{"Call a method on a class", "class RoundBall { roll() { print \"roll roll roll\"; } } var ball = RoundBall(); ball.roll();", []string{"roll roll roll"}, false},
 	}
 
 	for _, tt := range tests {

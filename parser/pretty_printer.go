@@ -11,6 +11,16 @@ type PrettyPrinter struct {
 	indent int
 }
 
+func (p *PrettyPrinter) VisitGet(g *GetExpr) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *PrettyPrinter) VisitSet(s *SetExpr) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewPrettyPrinter() *PrettyPrinter {
 	return &PrettyPrinter{indent: 0}
 }

@@ -9,6 +9,20 @@ import (
 
 type AstPrinter struct{}
 
+func (e AstPrinter) VisitGet(g *GetExpr) (interface{}, error) {
+	from, err := g.from.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf("%s.%s", from, g.property.Lexeme.(string)), nil
+}
+
+func (e AstPrinter) VisitSet(s *SetExpr) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (e AstPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 	expr, err := r.expr.Accept(e)
 	if err != nil {
@@ -23,8 +37,21 @@ func (e AstPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitCall(c *Call) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	callee, err := c.callee.Accept(e)
+	if err != nil {
+		return nil, err
+	}
+
+	var args []string
+	for _, arg := range c.arguments {
+		argStr, err := arg.Accept(e)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, argStr.(string))
+	}
+
+	return fmt.Sprintf("%s(%s)", callee, strings.Join(args, ", ")), nil
 }
 
 func (e AstPrinter) VisitFunction(f *Function) (interface{}, error) {

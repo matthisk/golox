@@ -41,11 +41,35 @@ func Return(v interface{}) ControlFlowStmt {
 }
 
 type LoxInstance struct {
-	class *LoxClass
+	class  *LoxClass
+	fields map[string]interface{}
+}
+
+func NewLoxInstance(class *LoxClass) *LoxInstance {
+	return &LoxInstance{
+		class:  class,
+		fields: make(map[string]interface{}),
+	}
 }
 
 func (l *LoxInstance) ToString() string {
 	return fmt.Sprintf("%s instance", l.class.name)
+}
+
+func (l *LoxInstance) Get(property string) (interface{}, error) {
+	if v, ok := l.fields[property]; ok {
+		return v, nil
+	}
+
+	if m := l.class.FindMethod(property); m != nil {
+		return m, nil
+	}
+
+	return nil, fmt.Errorf("undefined property %s", property)
+}
+
+func (l *LoxInstance) Set(property string, val interface{}) {
+	l.fields[property] = val
 }
 
 type LoxCallable interface {
@@ -54,7 +78,8 @@ type LoxCallable interface {
 }
 
 type LoxClass struct {
-	name string
+	name    string
+	methods map[string]LoxCallable
 }
 
 func (l *LoxClass) Arity() int {
@@ -62,14 +87,16 @@ func (l *LoxClass) Arity() int {
 }
 
 func (l *LoxClass) Call(i *Interpreter, args []interface{}) (interface{}, error) {
-	instance := &LoxInstance{
-		class: l,
-	}
+	instance := NewLoxInstance(l)
 	return instance, nil
 }
 
 func (l *LoxClass) ToString() string {
 	return l.name
+}
+
+func (l *LoxClass) FindMethod(property string) LoxCallable {
+	return l.methods[property]
 }
 
 type LoxFunction struct {
@@ -171,10 +198,56 @@ type Interpreter struct {
 	locals  map[Expr]int
 }
 
+func (i *Interpreter) VisitSet(s *SetExpr) (interface{}, error) {
+	name := s.name.Lexeme.(string)
+	object, err := i.evaluate(s.object)
+	if err != nil {
+		return nil, err
+	}
+
+	if obj, ok := object.(*LoxInstance); ok {
+		val, err := i.evaluate(s.value)
+		if err != nil {
+			return nil, err
+		}
+
+		obj.Set(name, val)
+		return nil, nil
+	} else {
+		return nil, fmt.Errorf("'%s' only instances have fields", name)
+	}
+}
+
+func (i *Interpreter) VisitGet(g *GetExpr) (interface{}, error) {
+	instance, err := i.evaluate(g.from)
+	if err != nil {
+		return nil, err
+	}
+
+	if ins, ok := instance.(*LoxInstance); ok {
+		return ins.Get(g.property.Lexeme.(string))
+	}
+
+	return nil, errors.New("only instances have fields")
+}
+
 func (i *Interpreter) VisitClass(s *ClassStatement) (interface{}, error) {
-	i.env.Define(s.name.Lexeme.(string), nil)
-	class := &LoxClass{name: s.name.Lexeme.(string)}
-	err := i.env.Assign(s.name.Lexeme.(string), class)
+	name := s.name.Lexeme.(string)
+
+	i.env.Define(name, nil)
+	class := &LoxClass{
+		name:    name,
+		methods: make(map[string]LoxCallable),
+	}
+
+	for _, method := range s.methods {
+		class.methods[method.name.Lexeme.(string)] = &LoxFunction{
+			declaration: method,
+			closure:     i.env,
+		}
+	}
+
+	err := i.env.Assign(name, class)
 	if err != nil {
 		return nil, err
 	}

@@ -8,18 +8,16 @@ import (
 )
 
 /*
-program     → statement* EOF ;
+program     -> statement* EOF ;
 
+// STATEMENT GRAMMAR
 declaration -> funDecl | classDecl | varDecl | statement;
-
-funDecl -> "fun" function;
-classDecl -> "class" IDENTIFIER "{" function* "}";
-function -> IDENTIFIER "(" parameters* ")" block;
-parameters -> IDENTIFIER ( "," IDENTIFIER )*;
-varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
-
+funDecl     -> "fun" function;
+classDecl   -> "class" IDENTIFIER "{" function* "}";
+function    -> IDENTIFIER "(" parameters* ")" block;
+parameters  -> IDENTIFIER ( "," IDENTIFIER )*;
+varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" ;
 statement   -> exprStmt | ifStmt | whileStmt | forStmt | printStmt | block;
-
 exprStmt    -> expression ";";
 ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?;
 whileStmt   -> "while" "(" expression ")" statement;
@@ -28,23 +26,21 @@ printStmt   -> "print" expression ";";
 block       -> "{" declaration* "}";
 controlStmt -> ( BREAK | CONTINUE ) ";"; // Can only happen while in for/while/if statement body.
 
-expression     → comma ;
-comma          -> ternary ( "," ternary )*;
+// EXPRESSION GRAMMAR
+expression     -> comma;
+comma          -> ternary ( "," ternary )* ;
 ternary        -> equality ("?" ternary ":" ternary)? ;
-assignment     -> IDENTIFIER "=" assignment | logic_or;
-logic_or       -> logic_and ( "or" logic_and )*;
-logic_and      -> equality ( "and" equality )*;
-equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-term           → factor ( ( "-" | "+" ) factor )* ;
-factor         → unary ( ( "/" | "*" ) unary )* ;
-unary          → ( "!" | "-" ) unary
-               | call ;
-call           -> primary ( "(" arguments ")" )*;
-primary        → NUMBER | STRING | "true" | "false" | "nil"
-               | "(" expression ")" | IDENTIFIER ;
-
-arguments      -> expression ( "," expression )*;
+assignment     -> ( call "." )?  IDENTIFIER "=" assignment | logic_or ;
+logic_or       -> logic_and ( "or" logic_and )* ;
+logic_and      -> equality ( "and" equality )* ;
+equality       -> comparison ( ( "!=" | "==" ) comparison )* ;
+comparison     -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term           -> factor ( ( "-" | "+" ) factor )* ;
+factor         -> unary ( ( "/" | "*" ) unary )* ;
+unary          -> ( "!" | "-" ) unary ;
+call           -> primary ( "(" arguments ")" | "." IDENTIFIER )*;
+primary        -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
+arguments      -> expression ( "," expression )* ;
 */
 
 type ContextItem struct {
@@ -680,14 +676,25 @@ func (p *Parser) assignment() (Expr, error) {
 			return &Assign{
 				BaseNode: BaseNode{
 					startPos: GetExprStartPos(expr),
-					endPos:   GetExprEndPos(e),
+					endPos:   GetExprEndPos(value),
 				},
 				name:  name,
 				value: value,
 			}, nil
+		} else if e, ok := expr.(*GetExpr); ok {
+			return &SetExpr{
+				BaseNode: BaseNode{
+					startPos: GetExprStartPos(expr),
+					endPos:   GetExprEndPos(value),
+				},
+				object: e.from,
+				name:   e.property,
+				value:  value,
+			}, nil
+
 		}
 
-		return nil, errors.New("Invalid assignment target.")
+		return nil, errors.New("invalid assignment target")
 	}
 
 	return expr, nil
@@ -851,34 +858,52 @@ func (p *Parser) unary() (Expr, error) {
 }
 
 func (p *Parser) call() (Expr, error) {
-	primary, err := p.primary()
+	expr, err := p.primary()
 	if err != nil {
 		return nil, err
 	}
 
-	if p.match(lexer.LEFT_PAREN) {
-		arguments, err := p.arguments()
-		if err != nil {
-			return nil, err
-		}
+	for {
+		if p.match(lexer.LEFT_PAREN) {
+			arguments, err := p.arguments()
+			if err != nil {
+				return nil, err
+			}
 
-		err = p.consume(lexer.RIGHT_PAREN, "Expect ')' closing paren after call.")
-		if err != nil {
-			return nil, err
-		}
+			err = p.consume(lexer.RIGHT_PAREN, "Expect ')' closing paren after call.")
+			if err != nil {
+				return nil, err
+			}
 
-		primary = &Call{
-			BaseNode: BaseNode{
-				startPos: GetExprStartPos(primary),
-				endPos:   p.previous().EndPos,
-			},
-			callee:    primary,
-			paren:     p.previous(),
-			arguments: arguments,
+			expr = &Call{
+				BaseNode: BaseNode{
+					startPos: GetExprStartPos(expr),
+					endPos:   p.previous().EndPos,
+				},
+				callee:    expr,
+				paren:     p.previous(),
+				arguments: arguments,
+			}
+		} else if p.match(lexer.DOT) {
+			err := p.consume(lexer.IDENTIFIER, "Expect identifier after '.'")
+			if err != nil {
+				return nil, err
+			}
+
+			expr = &GetExpr{
+				BaseNode: BaseNode{
+					startPos: GetExprStartPos(expr),
+					endPos:   p.previous().EndPos,
+				},
+				from:     expr,
+				property: p.previous(),
+			}
+		} else {
+			break
 		}
 	}
 
-	return primary, nil
+	return expr, nil
 }
 
 func (p *Parser) arguments() ([]Expr, error) {

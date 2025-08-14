@@ -1512,6 +1512,20 @@ func TestParserStatementsTD(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name: "call function on member select",
+			tokens: []lexer.Token{
+				{Type: lexer.IDENTIFIER, Lexeme: "x"},
+				{Type: lexer.DOT},
+				{Type: lexer.IDENTIFIER, Lexeme: "y"},
+				{Type: lexer.LEFT_PAREN},
+				{Type: lexer.RIGHT_PAREN},
+				{Type: lexer.SEMICOLON},
+				{Type: lexer.EOF},
+			},
+			expected: "x.y();",
+			wantErr:  false,
+		},
+		{
 			name: "function with loops",
 			tokens: []lexer.Token{
 				{Type: lexer.FUN},

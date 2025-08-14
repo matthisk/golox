@@ -27,6 +27,8 @@ type Visitor interface {
 	VisitFunction(f *Function) (interface{}, error)
 	VisitReturnStmt(r *ReturnStmt) (interface{}, error)
 	VisitClass(s *ClassStatement) (interface{}, error)
+	VisitGet(g *GetExpr) (interface{}, error)
+	VisitSet(s *SetExpr) (interface{}, error)
 }
 
 type Stmt interface {
@@ -254,6 +256,27 @@ type Literal struct {
 
 func (b *Literal) Accept(visitor Visitor) (interface{}, error) {
 	return visitor.VisitLiteral(b)
+}
+
+type GetExpr struct {
+	BaseNode
+	from     Expr
+	property lexer.Token
+}
+
+func (g *GetExpr) Accept(v Visitor) (interface{}, error) {
+	return v.VisitGet(g)
+}
+
+type SetExpr struct {
+	BaseNode
+	object Expr
+	name   lexer.Token
+	value  Expr
+}
+
+func (s *SetExpr) Accept(v Visitor) (interface{}, error) {
+	return v.VisitSet(s)
 }
 
 type Variable struct {
