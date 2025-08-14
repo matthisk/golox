@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/matthisk/lox/lexer"
@@ -136,7 +135,7 @@ func (p *Parser) statement() (Stmt, error) {
 
 	if p.match(lexer.BREAK) {
 		if cs, _ := p.contextStack.Peek(); cs == nil || !cs.CanBreak {
-			return nil, errors.New("Illegal jump target")
+			return nil, p.error("Illegal jump target")
 		}
 
 		startPos := p.previous().StartPos
@@ -153,7 +152,7 @@ func (p *Parser) statement() (Stmt, error) {
 
 	if p.match(lexer.CONTINUE) {
 		if cs, _ := p.contextStack.Peek(); cs == nil || !cs.CanBreak {
-			return nil, errors.New("Illegal jump target")
+			return nil, p.error("Illegal jump target")
 		}
 
 		startPos := p.previous().StartPos
@@ -272,7 +271,7 @@ func (p *Parser) parameters() ([]lexer.Token, error) {
 		result = append(result, p.previous())
 
 		if len(result) > 255 {
-			return nil, errors.New("Can't have more than 255 parameters.")
+			return nil, p.error("Can't have more than 255 parameters.")
 		}
 
 		if !p.match(lexer.COMMA) {
@@ -652,7 +651,7 @@ func (p *Parser) ternary() (Expr, error) {
 			}
 
 		} else {
-			return nil, errors.New("Expect colon.")
+			return nil, p.error("Expect colon.")
 		}
 	}
 
@@ -694,7 +693,7 @@ func (p *Parser) assignment() (Expr, error) {
 
 		}
 
-		return nil, errors.New("invalid assignment target")
+		return nil, p.error("invalid assignment target")
 	}
 
 	return expr, nil
@@ -924,7 +923,7 @@ func (p *Parser) arguments() ([]Expr, error) {
 		result = append(result, expression)
 
 		if len(result) > 255 {
-			return nil, errors.New("Can't have more than 255 arguments.")
+			return nil, p.error("Can't have more than 255 arguments.")
 		}
 
 		if !p.match(lexer.COMMA) {
@@ -975,7 +974,7 @@ func (p *Parser) primary() (Expr, error) {
 		}, nil
 	}
 
-	return nil, errors.New("Expect expression.")
+	return nil, p.error("Expect expression.")
 }
 
 func (p *Parser) match(tokens ...lexer.TokenType) bool {
@@ -995,7 +994,7 @@ func (p *Parser) consume(tok lexer.TokenType, err string) error {
 		return nil
 	}
 
-	return errors.New(err)
+	return p.error(err)
 }
 
 func (p *Parser) check(token lexer.TokenType) bool {
@@ -1026,4 +1025,12 @@ func (p *Parser) peek() lexer.Token {
 
 func (p *Parser) advance() {
 	p.index++
+}
+
+func (p *Parser) error(format string, args ...interface{}) *Error {
+	return &Error{
+		pos: p.previous().StartPos,
+		at:  p.peek(),
+		msg: fmt.Sprintf(format, args...),
+	}
 }

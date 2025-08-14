@@ -11,6 +11,12 @@ import (
 	"unicode/utf8"
 )
 
+// isASCIIDigit checks if a rune is an ASCII digit (0-9)
+// This is more restrictive than unicode.IsDigit which includes Unicode digits
+func isASCIIDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
 // Optimization ideas are marked with comments below.
 
 type Lexer struct {
@@ -131,7 +137,7 @@ func (lx *Lexer) Next() Token {
 		return lx.string(startPos)
 	}
 
-	if unicode.IsDigit(lx.curRune) {
+	if isASCIIDigit(lx.curRune) {
 		return lx.number(startPos)
 	}
 
@@ -192,17 +198,17 @@ func (lx *Lexer) number(startPos Pos) Token {
 
 	lx.sb.WriteRune(lx.curRune)
 
-	for unicode.IsDigit(lx.peek()) {
+	for isASCIIDigit(lx.peek()) {
 		lx.read()
 		lx.sb.WriteRune(lx.curRune)
 	}
 
 	r1, r2 := lx.peek2()
-	if r1 == '.' && unicode.IsDigit(r2) {
+	if r1 == '.' && isASCIIDigit(r2) {
 		lx.read()
 		lx.sb.WriteRune('.')
 
-		for unicode.IsDigit(lx.peek()) {
+		for isASCIIDigit(lx.peek()) {
 			lx.read()
 			lx.sb.WriteRune(lx.curRune)
 		}
