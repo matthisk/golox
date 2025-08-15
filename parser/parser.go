@@ -1027,10 +1027,10 @@ func (p *Parser) advance() {
 	p.index++
 }
 
-func (p *Parser) error(format string, args ...interface{}) *Error {
+func (p *Parser) error(msg string) *Error {
 	return &Error{
 		pos: p.previous().StartPos,
 		at:  p.peek(),
-		msg: fmt.Sprintf(format, args...),
+		msg: msg,
 	}
 }
