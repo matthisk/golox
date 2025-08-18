@@ -8,19 +8,19 @@ import (
 
 func TestPrint(t *testing.T) {
 	result, err := Print(&Binary{
-		left: &Unary{
-			token: lexer.BANG,
-			expr: &Literal{
-				token: lexer.Token{
+		Left: &Unary{
+			Token: lexer.BANG,
+			Expr: &Literal{
+				Token: lexer.Token{
 					Type:   lexer.NUMBER,
 					Lexeme: "5",
 				},
 			},
 		},
-		token: lexer.PLUS,
-		right: &Literal{
+		Token: lexer.PLUS,
+		Right: &Literal{
 			BaseNode: BaseNode{},
-			token: lexer.Token{
+			Token: lexer.Token{
 				Type:   lexer.NUMBER,
 				Lexeme: "10.05",
 			},

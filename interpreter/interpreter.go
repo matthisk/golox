@@ -1,10 +1,11 @@
-package parser
+package interpreter
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/matthisk/lox/lexer"
+	"github.com/matthisk/lox/parser"
 )
 
 type ControlFlowStmtT string
@@ -39,21 +40,11 @@ func Return(v interface{}) ControlFlowStmt {
 	}
 }
 
-type Printer interface {
-	Print(value interface{})
-}
-
-type DefaultPrinter struct{}
-
-func (p DefaultPrinter) Print(value interface{}) {
-	fmt.Println(value)
-}
-
 type Interpreter struct {
 	printer Printer
 	env     *Environment
 	globals *Environment
-	locals  map[Expr]int
+	locals  map[parser.Expr]int
 }
 
 func NewInterpreter() *Interpreter {
@@ -65,7 +56,7 @@ func NewInterpreter() *Interpreter {
 		printer: DefaultPrinter{},
 		env:     globals,
 		globals: globals,
-		locals:  make(map[Expr]int),
+		locals:  make(map[parser.Expr]int),
 	}
 }
 
@@ -78,19 +69,19 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 		printer: printer,
 		env:     globals,
 		globals: globals,
-		locals:  make(map[Expr]int),
+		locals:  make(map[parser.Expr]int),
 	}
 }
 
-func (i *Interpreter) VisitSet(s *SetExpr) (interface{}, error) {
-	name := s.name.Lexeme.(string)
-	object, err := i.evaluate(s.object)
+func (i *Interpreter) VisitSet(s *parser.SetExpr) (interface{}, error) {
+	name := s.Name.Lexeme.(string)
+	object, err := i.evaluate(s.Object)
 	if err != nil {
 		return nil, err
 	}
 
 	if obj, ok := object.(*LoxInstance); ok {
-		val, err := i.evaluate(s.value)
+		val, err := i.evaluate(s.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -102,21 +93,21 @@ func (i *Interpreter) VisitSet(s *SetExpr) (interface{}, error) {
 	}
 }
 
-func (i *Interpreter) VisitGet(g *GetExpr) (interface{}, error) {
-	instance, err := i.evaluate(g.from)
+func (i *Interpreter) VisitGet(g *parser.GetExpr) (interface{}, error) {
+	instance, err := i.evaluate(g.From)
 	if err != nil {
 		return nil, err
 	}
 
 	if ins, ok := instance.(*LoxInstance); ok {
-		return ins.Get(g.property.Lexeme.(string))
+		return ins.Get(g.Property.Lexeme.(string))
 	}
 
 	return nil, errors.New("only instances have fields")
 }
 
-func (i *Interpreter) VisitClass(s *ClassStatement) (interface{}, error) {
-	name := s.name.Lexeme.(string)
+func (i *Interpreter) VisitClass(s *parser.ClassStatement) (interface{}, error) {
+	name := s.Name.Lexeme.(string)
 
 	i.env.Define(name, nil)
 	class := &LoxClass{
@@ -124,8 +115,8 @@ func (i *Interpreter) VisitClass(s *ClassStatement) (interface{}, error) {
 		methods: make(map[string]LoxCallable),
 	}
 
-	for _, method := range s.methods {
-		class.methods[method.name.Lexeme.(string)] = &LoxFunction{
+	for _, method := range s.Methods {
+		class.methods[method.Name.Lexeme.(string)] = &LoxFunction{
 			declaration: method,
 			closure:     i.env,
 		}
@@ -139,20 +130,20 @@ func (i *Interpreter) VisitClass(s *ClassStatement) (interface{}, error) {
 	return nil, nil
 }
 
-func (i *Interpreter) VisitFunction(f *Function) (interface{}, error) {
+func (i *Interpreter) VisitFunction(f *parser.Function) (interface{}, error) {
 	fun := &LoxFunction{
 		declaration: f,
 		closure:     i.env,
 	}
-	i.env.Define(f.name.Lexeme.(string), fun)
+	i.env.Define(f.Name.Lexeme.(string), fun)
 	return nil, nil
 }
 
-func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
+func (i *Interpreter) VisitBlock(b *parser.Block) (interface{}, error) {
 	i.env = NewEnvironment(i.env)
 	defer func() { i.env = i.env.enclosing }()
 
-	for _, stmt := range b.stmts {
+	for _, stmt := range b.Stmts {
 		result, err := stmt.Accept(i)
 		if err != nil {
 			return nil, err
@@ -168,31 +159,31 @@ func (i *Interpreter) VisitBlock(b *Block) (interface{}, error) {
 	return nil, nil
 }
 
-func (i *Interpreter) VisitIfStatement(s *IfStatement) (interface{}, error) {
-	cond, err := s.cond.Accept(i)
+func (i *Interpreter) VisitIfStatement(s *parser.IfStatement) (interface{}, error) {
+	cond, err := s.Cond.Accept(i)
 	if err != nil {
 		return nil, err
 	}
 
 	if isTruthy(cond) {
-		return s.ifBlock.Accept(i)
+		return s.IfBlock.Accept(i)
 	} else {
-		if s.elseBlock != nil {
-			return s.elseBlock.Accept(i)
+		if s.ElseBlock != nil {
+			return s.ElseBlock.Accept(i)
 		}
 	}
 
 	return nil, nil
 }
 
-func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
-	cond, err := s.cond.Accept(i)
+func (i *Interpreter) VisitWhileStatement(s *parser.WhileStatement) (interface{}, error) {
+	cond, err := s.Cond.Accept(i)
 	if err != nil {
 		return nil, err
 	}
 
 	for isTruthy(cond) {
-		result, err := s.body.Accept(i)
+		result, err := s.Body.Accept(i)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +198,7 @@ func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error
 			}
 		}
 
-		cond, err = s.cond.Accept(i)
+		cond, err = s.Cond.Accept(i)
 		if err != nil {
 			return nil, err
 		}
@@ -216,25 +207,25 @@ func (i *Interpreter) VisitWhileStatement(s *WhileStatement) (interface{}, error
 	return nil, nil
 }
 
-func (i *Interpreter) VisitForStatement(s *ForStatement) (interface{}, error) {
+func (i *Interpreter) VisitForStatement(s *parser.ForStatement) (interface{}, error) {
 	// We don't implement for statements, they are desugared to a while loop by the parser
 	return nil, nil
 }
 
-func (i *Interpreter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
+func (i *Interpreter) VisitBreakStmt(b *parser.BreakStmt) (interface{}, error) {
 	return Break(), nil
 }
 
-func (i *Interpreter) VisitContinueStmt(c *ContinueStmt) (interface{}, error) {
+func (i *Interpreter) VisitContinueStmt(c *parser.ContinueStmt) (interface{}, error) {
 	return Continue(), nil
 }
 
-func (i *Interpreter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
+func (i *Interpreter) VisitReturnStmt(r *parser.ReturnStmt) (interface{}, error) {
 	var val interface{}
 	var err error
 
-	if r.expr != nil {
-		val, err = r.expr.Accept(i)
+	if r.Expr != nil {
+		val, err = r.Expr.Accept(i)
 		if err != nil {
 			return nil, err
 		}
@@ -243,8 +234,8 @@ func (i *Interpreter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 	return Return(val), nil
 }
 
-func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
-	expr, err := node.expr.Accept(i)
+func (i *Interpreter) VisitPrintStmt(node *parser.PrintStmt) (interface{}, error) {
+	expr, err := node.Expr.Accept(i)
 	if err != nil {
 		return nil, err
 	}
@@ -253,14 +244,14 @@ func (i *Interpreter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 	return nil, nil
 }
 
-func (i *Interpreter) VisitCall(c *Call) (interface{}, error) {
-	callee, err := i.evaluate(c.callee)
+func (i *Interpreter) VisitCall(c *parser.Call) (interface{}, error) {
+	callee, err := i.evaluate(c.Callee)
 	if err != nil {
 		return nil, err
 	}
 
 	var args []interface{}
-	for _, argument := range c.arguments {
+	for _, argument := range c.Arguments {
 		arg, err := i.evaluate(argument)
 		if err != nil {
 			return nil, err
@@ -280,8 +271,8 @@ func (i *Interpreter) VisitCall(c *Call) (interface{}, error) {
 	}
 }
 
-func (i *Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
-	_, err := node.expr.Accept(i)
+func (i *Interpreter) VisitExprStmt(node *parser.ExprStmt) (interface{}, error) {
+	_, err := node.Expr.Accept(i)
 	if err != nil {
 		return nil, err
 	}
@@ -289,43 +280,43 @@ func (i *Interpreter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 	return nil, nil
 }
 
-func (i *Interpreter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
-	if vd.initializer != nil {
-		val, err := vd.initializer.Accept(i)
+func (i *Interpreter) VisitVarDecl(vd *parser.VarDecl) (interface{}, error) {
+	if vd.Initializer != nil {
+		val, err := vd.Initializer.Accept(i)
 		if err != nil {
 			return nil, err
 		}
 
-		i.env.Define(vd.name, val)
+		i.env.Define(vd.Name, val)
 	} else {
-		i.env.Define(vd.name, nil)
+		i.env.Define(vd.Name, nil)
 	}
 
 	return nil, nil
 }
 
-func (i *Interpreter) VisitAssign(b *Assign) (interface{}, error) {
-	value, err := i.evaluate(b.value)
+func (i *Interpreter) VisitAssign(b *parser.Assign) (interface{}, error) {
+	value, err := i.evaluate(b.Value)
 	if err != nil {
 		return nil, err
 	}
 
-	err = i.env.Assign(b.name, value)
+	err = i.env.Assign(b.Name, value)
 
 	return value, err
 }
 
-func (i *Interpreter) VisitLogical(b *Logical) (interface{}, error) {
-	left, err := b.left.Accept(i)
+func (i *Interpreter) VisitLogical(b *parser.Logical) (interface{}, error) {
+	left, err := b.Left.Accept(i)
 	if err != nil {
 		return nil, err
 	}
 
-	if b.token == lexer.OR {
+	if b.Token == lexer.OR {
 		if isTruthy(left) {
 			return left, nil
 		}
-	} else if b.token == lexer.AND {
+	} else if b.Token == lexer.AND {
 		if !isTruthy(left) {
 			return left, nil
 		}
@@ -333,20 +324,20 @@ func (i *Interpreter) VisitLogical(b *Logical) (interface{}, error) {
 		panic("Illegal AST node Logical with token type")
 	}
 
-	return i.evaluate(b.right)
+	return i.evaluate(b.Right)
 }
 
-func (i *Interpreter) VisitBinary(node *Binary) (interface{}, error) {
-	l, err := i.evaluate(node.left)
+func (i *Interpreter) VisitBinary(node *parser.Binary) (interface{}, error) {
+	l, err := i.evaluate(node.Left)
 	if err != nil {
 		return nil, err
 	}
-	r, err := i.evaluate(node.right)
+	r, err := i.evaluate(node.Right)
 	if err != nil {
 		return nil, err
 	}
 
-	switch node.token {
+	switch node.Token {
 	case lexer.PLUS:
 		if ls, ok := l.(string); ok {
 			if rs, ok := r.(string); ok {
@@ -360,21 +351,21 @@ func (i *Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 			}
 		}
 	case lexer.MINUS:
-		err := isNumber(node.token, l, r)
+		err := isNumber(node.Token, l, r)
 		if err != nil {
 			return nil, err
 		}
 
 		return l.(float64) - r.(float64), nil
 	case lexer.SLASH:
-		err := isNumber(node.token, l, r)
+		err := isNumber(node.Token, l, r)
 		if err != nil {
 			return nil, err
 		}
 
 		return l.(float64) / r.(float64), nil
 	case lexer.STAR:
-		err := isNumber(node.token, l, r)
+		err := isNumber(node.Token, l, r)
 		if err != nil {
 			return nil, err
 		}
@@ -399,8 +390,8 @@ func (i *Interpreter) VisitBinary(node *Binary) (interface{}, error) {
 	return nil, fmt.Errorf("unsupported binary operation or operand types")
 }
 
-func (i *Interpreter) VisitLiteral(node *Literal) (interface{}, error) {
-	switch node.token.Type {
+func (i *Interpreter) VisitLiteral(node *parser.Literal) (interface{}, error) {
+	switch node.Token.Type {
 	case lexer.TRUE:
 		return true, nil
 	case lexer.FALSE:
@@ -408,19 +399,19 @@ func (i *Interpreter) VisitLiteral(node *Literal) (interface{}, error) {
 	case lexer.NIL:
 		return nil, nil
 	case lexer.NUMBER, lexer.STRING:
-		return node.token.Lexeme, nil
+		return node.Token.Lexeme, nil
 	default:
-		return node.token.Lexeme, nil
+		return node.Token.Lexeme, nil
 	}
 }
 
-func (i *Interpreter) VisitUnary(node *Unary) (interface{}, error) {
-	val, err := i.evaluate(node.expr)
+func (i *Interpreter) VisitUnary(node *parser.Unary) (interface{}, error) {
+	val, err := i.evaluate(node.Expr)
 	if err != nil {
 		return nil, err
 	}
 
-	switch node.token {
+	switch node.Token {
 	case lexer.BANG:
 		return !isTruthy(val), nil
 	case lexer.MINUS:
@@ -430,34 +421,34 @@ func (i *Interpreter) VisitUnary(node *Unary) (interface{}, error) {
 	}
 }
 
-func (i *Interpreter) VisitComma(node *Comma) (interface{}, error) {
-	_, err := i.evaluate(node.left)
+func (i *Interpreter) VisitComma(node *parser.Comma) (interface{}, error) {
+	_, err := i.evaluate(node.Left)
 	if err != nil {
 		return nil, err
 	}
-	return i.evaluate(node.right)
+	return i.evaluate(node.Right)
 }
 
-func (i *Interpreter) VisitGrouping(node *Grouping) (interface{}, error) {
-	return i.evaluate(node.expr)
+func (i *Interpreter) VisitGrouping(node *parser.Grouping) (interface{}, error) {
+	return i.evaluate(node.Expr)
 }
 
-func (i *Interpreter) VisitTernary(node *Ternary) (interface{}, error) {
-	left, err := i.evaluate(node.left)
+func (i *Interpreter) VisitTernary(node *parser.Ternary) (interface{}, error) {
+	left, err := i.evaluate(node.Left)
 	if err != nil {
 		return nil, err
 	}
 	if isTruthy(left) {
-		return i.evaluate(node.middle)
+		return i.evaluate(node.Middle)
 	}
-	return i.evaluate(node.right)
+	return i.evaluate(node.Right)
 }
 
-func (i *Interpreter) VisitVariable(b *Variable) (interface{}, error) {
+func (i *Interpreter) VisitVariable(b *parser.Variable) (interface{}, error) {
 	if depth, ok := i.locals[b]; ok {
-		return i.env.GetAt(depth, b.name)
+		return i.env.GetAt(depth, b.Name)
 	}
-	return i.globals.Get(b.name)
+	return i.globals.Get(b.Name)
 }
 
 func isNumber(op lexer.TokenType, l, r interface{}) error {
@@ -505,11 +496,11 @@ func isEqual(l, r interface{}) bool {
 	return false
 }
 
-func (i *Interpreter) evaluate(expr Expr) (interface{}, error) {
+func (i *Interpreter) evaluate(expr parser.Expr) (interface{}, error) {
 	return expr.Accept(i)
 }
 
-func (i *Interpreter) Run(stmts []Stmt) error {
+func (i *Interpreter) Run(stmts []parser.Stmt) error {
 	for _, stmt := range stmts {
 		_, err := stmt.Accept(i)
 		if err != nil {
@@ -520,11 +511,11 @@ func (i *Interpreter) Run(stmts []Stmt) error {
 	return nil
 }
 
-func (i *Interpreter) EvaluateExpression(expr Expr) (interface{}, error) {
+func (i *Interpreter) EvaluateExpression(expr parser.Expr) (interface{}, error) {
 	return expr.Accept(i)
 }
 
-func (i *Interpreter) executeBlock(body []Stmt, env *Environment) (interface{}, error) {
+func (i *Interpreter) executeBlock(body []parser.Stmt, env *Environment) (interface{}, error) {
 	oldEnv := i.env
 	i.env = env
 	defer func() { i.env = oldEnv }()
@@ -544,6 +535,6 @@ func (i *Interpreter) executeBlock(body []Stmt, env *Environment) (interface{}, 
 	return nil, nil
 }
 
-func (i *Interpreter) resolve(expr Expr, depth int) {
+func (i *Interpreter) resolve(expr parser.Expr, depth int) {
 	i.locals[expr] = depth
 }

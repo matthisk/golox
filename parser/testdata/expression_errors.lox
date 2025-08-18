@@ -1,0 +1,37 @@
+// Test file for expression parsing errors
+
+// Incomplete ternary operator
+var x = true ? 5;
+
+// Missing colon in ternary
+var y = false ? 10 20;
+
+// Unmatched parentheses in expressions
+var result = (5 + 3;
+
+// Missing right operand
+var bad1 = 5 +;
+var bad2 = 10 *;
+var bad3 = true and;
+
+// Invalid comparison chains
+var invalid = 1 < 2 < 3;
+
+// Missing expression in grouping
+var empty = ();
+
+// Invalid function call syntax
+var x = func();  // 'func' is keyword, not identifier
+
+// Malformed assignment
+var a;
+3 + 4 = a;
+
+// Missing comma in sequence
+var seq = 1, 2 3, 4;
+
+// Incomplete logical expression
+var logic = true or;
+
+// Unary operator without operand
+var neg = -;

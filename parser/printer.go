@@ -10,12 +10,12 @@ import (
 type AstPrinter struct{}
 
 func (e AstPrinter) VisitGet(g *GetExpr) (interface{}, error) {
-	from, err := g.from.Accept(e)
+	from, err := g.From.Accept(e)
 	if err != nil {
 		return nil, err
 	}
 
-	return fmt.Sprintf("%s.%s", from, g.property.Lexeme.(string)), nil
+	return fmt.Sprintf("%s.%s", from, g.Property.Lexeme.(string)), nil
 }
 
 func (e AstPrinter) VisitSet(s *SetExpr) (interface{}, error) {
@@ -24,7 +24,7 @@ func (e AstPrinter) VisitSet(s *SetExpr) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
-	expr, err := r.expr.Accept(e)
+	expr, err := r.Expr.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -37,13 +37,13 @@ func (e AstPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitCall(c *Call) (interface{}, error) {
-	callee, err := c.callee.Accept(e)
+	callee, err := c.Callee.Accept(e)
 	if err != nil {
 		return nil, err
 	}
 
 	var args []string
-	for _, arg := range c.arguments {
+	for _, arg := range c.Arguments {
 		argStr, err := arg.Accept(e)
 		if err != nil {
 			return nil, err
@@ -56,14 +56,14 @@ func (e AstPrinter) VisitCall(c *Call) (interface{}, error) {
 
 func (e AstPrinter) VisitFunction(f *Function) (interface{}, error) {
 	var params []string
-	for _, param := range f.params {
+	for _, param := range f.Params {
 		params = append(params, fmt.Sprintf("%s", param.Lexeme))
 	}
 
 	var body strings.Builder
 	body.WriteString("{\n")
 
-	for _, stmt := range f.body {
+	for _, stmt := range f.Body {
 		stmtStr, err := stmt.Accept(e)
 		if err != nil {
 			return nil, err
@@ -73,7 +73,7 @@ func (e AstPrinter) VisitFunction(f *Function) (interface{}, error) {
 
 	body.WriteString("}")
 
-	return fmt.Sprintf("fun %s(%s) %s", f.name.Lexeme, strings.Join(params, ", "), body.String()), nil
+	return fmt.Sprintf("fun %s(%s) %s", f.Name.Lexeme, strings.Join(params, ", "), body.String()), nil
 }
 
 func (e AstPrinter) VisitBlock(b *Block) (interface{}, error) {
@@ -81,8 +81,8 @@ func (e AstPrinter) VisitBlock(b *Block) (interface{}, error) {
 
 	bd.WriteString("{\n")
 
-	for i := range b.stmts {
-		stmt, err := b.stmts[i].Accept(e)
+	for i := range b.Stmts {
+		stmt, err := b.Stmts[i].Accept(e)
 		if err != nil {
 			return nil, err
 		}
@@ -95,20 +95,20 @@ func (e AstPrinter) VisitBlock(b *Block) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
-	cond, err := s.cond.Accept(e)
+	cond, err := s.Cond.Accept(e)
 	if err != nil {
 		return nil, err
 	}
 
-	ifBlock, err := s.ifBlock.Accept(e)
+	ifBlock, err := s.IfBlock.Accept(e)
 	if err != nil {
 		return nil, err
 	}
 
 	result := fmt.Sprintf("if (%s) %s", cond, ifBlock)
 
-	if s.elseBlock != nil {
-		elseBlock, err := s.elseBlock.Accept(e)
+	if s.ElseBlock != nil {
+		elseBlock, err := s.ElseBlock.Accept(e)
 		if err != nil {
 			return nil, err
 		}
@@ -119,12 +119,12 @@ func (e AstPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
-	cond, err := s.cond.Accept(e)
+	cond, err := s.Cond.Accept(e)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := s.body.Accept(e)
+	body, err := s.Body.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +137,8 @@ func (e AstPrinter) VisitForStatement(s *ForStatement) (interface{}, error) {
 	var cond string
 	var inc string
 
-	if s.initializer != nil {
-		initResult, err := s.initializer.Accept(e)
+	if s.Initializer != nil {
+		initResult, err := s.Initializer.Accept(e)
 		if err != nil {
 			return nil, err
 		}
@@ -149,23 +149,23 @@ func (e AstPrinter) VisitForStatement(s *ForStatement) (interface{}, error) {
 		}
 	}
 
-	if s.condition != nil {
-		condResult, err := s.condition.Accept(e)
+	if s.Condition != nil {
+		condResult, err := s.Condition.Accept(e)
 		if err != nil {
 			return nil, err
 		}
 		cond = condResult.(string)
 	}
 
-	if s.increment != nil {
-		incResult, err := s.increment.Accept(e)
+	if s.Increment != nil {
+		incResult, err := s.Increment.Accept(e)
 		if err != nil {
 			return nil, err
 		}
 		inc = incResult.(string)
 	}
 
-	body, err := s.body.Accept(e)
+	body, err := s.Body.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -182,15 +182,15 @@ func (e AstPrinter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
-	initializer, err := vd.initializer.Accept(e)
+	initializer, err := vd.Initializer.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("var %s = %s;", vd.name, initializer), nil
+	return fmt.Sprintf("var %s = %s;", vd.Name, initializer), nil
 }
 
 func (e AstPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
-	expr, err := node.expr.Accept(e)
+	expr, err := node.Expr.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func (e AstPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
-	expr, err := node.expr.Accept(e)
+	expr, err := node.Expr.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -206,35 +206,35 @@ func (e AstPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitLogical(b *Logical) (interface{}, error) {
-	left, err := b.left.Accept(e)
+	left, err := b.Left.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	right, err := b.right.Accept(e)
+	right, err := b.Right.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("(%s %s %s)", b.token, left, right), nil
+	return fmt.Sprintf("(%s %s %s)", b.Token, left, right), nil
 }
 
 func (e AstPrinter) VisitBinary(node *Binary) (interface{}, error) {
-	left, err := node.left.Accept(e)
+	left, err := node.Left.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	right, err := node.right.Accept(e)
+	right, err := node.Right.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("(%s %s %s)", node.token.String(), left.(string), right.(string)), nil
+	return fmt.Sprintf("(%s %s %s)", node.Token.String(), left.(string), right.(string)), nil
 }
 
 func (e AstPrinter) VisitLiteral(node *Literal) (interface{}, error) {
-	switch node.token.Type {
+	switch node.Token.Type {
 	case lexer.STRING:
-		return fmt.Sprintf("\"%s\"", node.token.Lexeme), nil
+		return fmt.Sprintf("\"%s\"", node.Token.Lexeme), nil
 	case lexer.NUMBER:
-		return fmt.Sprintf("%v", node.token.Lexeme), nil
+		return fmt.Sprintf("%v", node.Token.Lexeme), nil
 	case lexer.TRUE:
 		return "true", nil
 	case lexer.FALSE:
@@ -242,28 +242,28 @@ func (e AstPrinter) VisitLiteral(node *Literal) (interface{}, error) {
 	case lexer.NIL:
 		return "nil", nil
 	default:
-		return fmt.Sprintf("%v", node.token.Lexeme), nil
+		return fmt.Sprintf("%v", node.Token.Lexeme), nil
 	}
 }
 
 func (e AstPrinter) VisitVariable(b *Variable) (interface{}, error) {
-	return b.name, nil
+	return b.Name, nil
 }
 
 func (e AstPrinter) VisitUnary(node *Unary) (interface{}, error) {
-	expr, err := node.expr.Accept(e)
+	expr, err := node.Expr.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("(%s %s)", node.token.String(), expr), nil
+	return fmt.Sprintf("(%s %s)", node.Token.String(), expr), nil
 }
 
 func (e AstPrinter) VisitComma(node *Comma) (interface{}, error) {
-	left, err := node.left.Accept(e)
+	left, err := node.Left.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	right, err := node.right.Accept(e)
+	right, err := node.Right.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -271,15 +271,15 @@ func (e AstPrinter) VisitComma(node *Comma) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitTernary(node *Ternary) (interface{}, error) {
-	left, err := node.left.Accept(e)
+	left, err := node.Left.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	middle, err := node.middle.Accept(e)
+	middle, err := node.Middle.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	right, err := node.right.Accept(e)
+	right, err := node.Right.Accept(e)
 	if err != nil {
 		return nil, err
 	}
@@ -287,16 +287,16 @@ func (e AstPrinter) VisitTernary(node *Ternary) (interface{}, error) {
 }
 
 func (e AstPrinter) VisitAssign(b *Assign) (interface{}, error) {
-	value, err := b.value.Accept(e)
+	value, err := b.Value.Accept(e)
 	if err != nil {
 		return nil, err
 	}
 
-	return fmt.Sprintf("(ASSIGN %s %s)", b.name, value), nil
+	return fmt.Sprintf("(ASSIGN %s %s)", b.Name, value), nil
 }
 
 func (e AstPrinter) VisitGrouping(node *Grouping) (interface{}, error) {
-	expr, err := node.expr.Accept(e)
+	expr, err := node.Expr.Accept(e)
 	if err != nil {
 		return nil, err
 	}

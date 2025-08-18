@@ -1,11 +1,12 @@
-package parser
+package interpreter
 
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
-	"github.com/matthisk/lox/lexer"
+	"github.com/matthisk/lox/engine"
 )
 
 func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
@@ -419,55 +420,15 @@ func TestInterpreter_TableDriven(t *testing.T) {
 }
 
 func runLoxExpression(source string) (interface{}, error) {
-	lx := lexer.New(bytes.NewBufferString(source))
-	lexResult := lexer.Consume(lx)
-	if lexResult.Err != nil {
-		return nil, lexResult.Err
-	}
-
-	parser := New(lexResult.Tokens)
-	expr, err := parser.expression()
-	if err != nil {
-		return nil, err
-	}
-
-	interpreter := Interpreter{}
-	return interpreter.evaluate(expr)
+	return engine.Evaluate(strings.NewReader(source))
 }
 
 func runLox(source string) ([]string, error) {
-	lx := lexer.New(bytes.NewBufferString(source))
-	lexResult := lexer.Consume(lx)
-	if lexResult.Err != nil {
-		return nil, lexResult.Err
-	}
-
-	for i := range lexResult.Tokens {
-		if lexResult.Tokens[i].Type == lexer.ILLEGAL {
-			return nil, fmt.Errorf("Lexer found illegal token found at index %d", i)
-		}
-	}
-
-	parser := New(lexResult.Tokens)
-	stmts, err := parser.Parse()
-	if err != nil {
-		return nil, err
-	}
-
 	printer := &SpyPrinter{}
-	interpreter := NewInterpreterWithPrinter(printer)
-	resolver := NewResolver(interpreter)
-	_, err = resolver.resolveStmts(stmts)
-	if err != nil {
-		return nil, err
-	}
+	in := bytes.NewBufferString(source)
+	err := engine.Run(in, printer)
 
-	err = interpreter.Run(stmts)
-	if err != nil {
-		return nil, err
-	}
-
-	return printer.log, nil
+	return printer.log, err
 }
 
 type SpyPrinter struct {

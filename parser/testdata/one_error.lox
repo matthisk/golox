@@ -1,0 +1,8 @@
+// Test file for class declaration and usage errors
+
+// Missing class name
+class {
+  method() {
+    return "no name";
+  }
+}

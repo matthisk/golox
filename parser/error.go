@@ -1,6 +1,22 @@
 package parser
 
-import "github.com/matthisk/lox/lexer"
+import (
+	"fmt"
+
+	"github.com/matthisk/lox/lexer"
+)
+
+type Errors struct {
+	errs []*Error
+}
+
+func NewErrors(errs []*Error) *Errors {
+	return &Errors{errs: errs}
+}
+
+func (p *Errors) Error() string {
+	return fmt.Sprintf("found %d errors while parsing", len(p.errs))
+}
 
 type Error struct {
 	pos lexer.Pos

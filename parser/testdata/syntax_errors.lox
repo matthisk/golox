@@ -1,0 +1,46 @@
+// Test file for basic syntax errors
+
+// Missing semicolon
+var x = 5
+print x;
+
+// Missing closing parenthesis  
+if (x > 3 {
+  print "greater";
+}
+
+// Missing opening brace
+if (x < 10)
+  print "less";
+  print "still less";
+}
+
+// Unmatched closing brace
+{
+  var y = 10;
+}}
+
+// Missing closing quote
+var message = "Hello world;
+
+// Invalid assignment target
+5 = x;
+
+// Missing expression after operator
+var result = 5 + ;
+
+// Double operators
+var bad = 5 ++ 3;
+
+// Missing condition in if statement
+if () {
+  print "empty condition";
+}
+
+// Missing semicolon in for loop
+for (var i = 0 i < 10; i = i + 1) {
+  print i;
+}
+
+// Missing variable name
+var = 42;

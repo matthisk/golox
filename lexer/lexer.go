@@ -26,6 +26,8 @@ type Lexer struct {
 	err     error
 	line    int
 	column  int
+	// Accumulates the source code
+	source strings.Builder
 	// Optimization: Buffer for identifier/number/string building to avoid string concatenation
 	sb strings.Builder
 }
@@ -293,6 +295,11 @@ func (lx *Lexer) Return(token TokenType) Token {
 	}
 }
 
+// Source returns the source string which the lexer processed.
+func (lx *Lexer) Source() string {
+	return lx.source.String()
+}
+
 func (lx *Lexer) makeToken(token TokenType, startPos Pos) Token {
 	return Token{
 		Type:     token,
@@ -319,6 +326,7 @@ func (lx *Lexer) read() {
 	// Now read the next rune
 	readRune, _, err := lx.r.ReadRune()
 	lx.curRune = readRune
+	lx.source.WriteRune(readRune)
 
 	if err == io.EOF {
 		lx.curRune = 0

@@ -1,0 +1,110 @@
+// Test file for class declaration and usage errors
+
+// Missing class name
+class {
+  method() {
+    return "no name";
+  }
+}
+
+// Missing opening brace
+class BadClass
+  method() {
+    return "no brace";
+  }
+}
+
+// Missing closing brace
+class IncompleteBrace {
+  method() {
+    return "incomplete";
+  }
+
+// Class with invalid name (keyword)
+class var {
+  getValue() {
+    return 42;
+  }
+}
+
+// Class with no methods (this might be valid, but worth testing)
+class Empty {
+}
+
+// Method without name
+class MethodErrors {
+  () {
+    return "nameless";
+  }
+}
+
+// Method without parentheses
+class MethodErrors2 {
+  getName {
+    return "no parens";
+  }
+}
+
+// Method without opening paren
+class MethodErrors3 {
+  getName) {
+    return "missing open";
+  }
+}
+
+// Method without closing paren  
+class MethodErrors4 {
+  getName( {
+    return "missing close";
+  }
+}
+
+// Method without body
+class MethodErrors5 {
+  getName();
+}
+
+// Method with missing opening brace
+class MethodErrors6 {
+  getName()
+    return "no open brace";
+  }
+}
+
+// Method with missing closing brace
+class MethodErrors7 {
+  getName() {
+    return "no close brace";
+}
+
+// Duplicate method names (might be allowed)
+class Duplicates {
+  test() {
+    return 1;
+  }
+  
+  test() {
+    return 2;
+  }
+}
+
+// Property access on non-instance
+var x = 5;
+var prop = x.property;
+
+// Property assignment on non-instance  
+var y = "hello";
+y.length = 10;
+
+// Method call on primitive
+var str = "test";
+str.method();
+
+// Chained property access errors
+var obj = SomeClass();
+var chain = obj.prop1.prop2.;
+
+// Invalid property names
+var obj2 = AnotherClass();
+obj2.123invalid = "bad name";
+obj2.var = "keyword as property";

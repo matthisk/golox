@@ -12,13 +12,26 @@ type PrettyPrinter struct {
 }
 
 func (p *PrettyPrinter) VisitGet(g *GetExpr) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	from, err := g.From.Accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf("%s.%s", from, g.Property.Lexeme.(string)), nil
 }
 
 func (p *PrettyPrinter) VisitSet(s *SetExpr) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	object, err := s.Object.Accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := s.Value.Accept(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return fmt.Sprintf("%s.%s = %s", object, s.Name.Lexeme.(string), value), nil
 }
 
 func NewPrettyPrinter() *PrettyPrinter {
@@ -35,10 +48,10 @@ func (p *PrettyPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
-	if r.expr == nil {
+	if r.Expr == nil {
 		return p.getIndent() + "return;", nil
 	}
-	expr, err := r.expr.Accept(p)
+	expr, err := r.Expr.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +59,13 @@ func (p *PrettyPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitCall(c *Call) (interface{}, error) {
-	callee, err := c.callee.Accept(p)
+	callee, err := c.Callee.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	var args []string
-	for _, arg := range c.arguments {
+	for _, arg := range c.Arguments {
 		argStr, err := arg.Accept(p)
 		if err != nil {
 			return nil, err
@@ -65,14 +78,14 @@ func (p *PrettyPrinter) VisitCall(c *Call) (interface{}, error) {
 
 func (p *PrettyPrinter) VisitFunction(f *Function) (interface{}, error) {
 	var params []string
-	for _, param := range f.params {
+	for _, param := range f.Params {
 		params = append(params, fmt.Sprintf("%s", param.Lexeme))
 	}
 
-	result := p.getIndent() + fmt.Sprintf("fun %s(%s) {\n", f.name.Lexeme, strings.Join(params, ", "))
+	result := p.getIndent() + fmt.Sprintf("fun %s(%s) {\n", f.Name.Lexeme, strings.Join(params, ", "))
 
 	p.indent++
-	for _, stmt := range f.body {
+	for _, stmt := range f.Body {
 		stmtStr, err := stmt.Accept(p)
 		if err != nil {
 			return nil, err
@@ -90,7 +103,7 @@ func (p *PrettyPrinter) VisitBlock(b *Block) (interface{}, error) {
 	result := p.getIndent() + "{\n"
 
 	p.indent++
-	for _, stmt := range b.stmts {
+	for _, stmt := range b.Stmts {
 		stmtStr, err := stmt.Accept(p)
 		if err != nil {
 			return nil, err
@@ -105,7 +118,7 @@ func (p *PrettyPrinter) VisitBlock(b *Block) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
-	cond, err := s.cond.Accept(p)
+	cond, err := s.Cond.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -113,13 +126,13 @@ func (p *PrettyPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 	result := p.getIndent() + fmt.Sprintf("if (%s)", cond)
 
 	// Handle if block formatting
-	ifBlock, err := s.ifBlock.Accept(p)
+	ifBlock, err := s.IfBlock.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check if the if block is a Block or a single statement
-	if _, ok := s.ifBlock.(*Block); ok {
+	if _, ok := s.IfBlock.(*Block); ok {
 		result += " " + strings.TrimPrefix(ifBlock.(string), p.getIndent())
 	} else {
 		result += " {\n"
@@ -130,18 +143,18 @@ func (p *PrettyPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 	}
 
 	// Handle else block if present
-	if s.elseBlock != nil {
+	if s.ElseBlock != nil {
 		result += " else"
 
-		elseBlock, err := s.elseBlock.Accept(p)
+		elseBlock, err := s.ElseBlock.Accept(p)
 		if err != nil {
 			return nil, err
 		}
 
 		// Check if else block is an if statement (else if)
-		if _, ok := s.elseBlock.(*IfStatement); ok {
+		if _, ok := s.ElseBlock.(*IfStatement); ok {
 			result += " " + strings.TrimPrefix(elseBlock.(string), p.getIndent())
-		} else if _, ok := s.elseBlock.(*Block); ok {
+		} else if _, ok := s.ElseBlock.(*Block); ok {
 			result += " " + strings.TrimPrefix(elseBlock.(string), p.getIndent())
 		} else {
 			result += " {\n"
@@ -156,20 +169,20 @@ func (p *PrettyPrinter) VisitIfStatement(s *IfStatement) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitWhileStatement(s *WhileStatement) (interface{}, error) {
-	cond, err := s.cond.Accept(p)
+	cond, err := s.Cond.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	result := p.getIndent() + fmt.Sprintf("while (%s)", cond)
 
-	body, err := s.body.Accept(p)
+	body, err := s.Body.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if body is a Block or a single statement
-	if _, ok := s.body.(*Block); ok {
+	// Check if Body is a Block or a single statement
+	if _, ok := s.Body.(*Block); ok {
 		result += " " + strings.TrimPrefix(body.(string), p.getIndent())
 	} else {
 		result += " {\n"
@@ -185,8 +198,8 @@ func (p *PrettyPrinter) VisitWhileStatement(s *WhileStatement) (interface{}, err
 func (p *PrettyPrinter) VisitForStatement(s *ForStatement) (interface{}, error) {
 	var init, cond, inc string
 
-	if s.initializer != nil {
-		initResult, err := s.initializer.Accept(&PrettyPrinter{indent: 0})
+	if s.Initializer != nil {
+		initResult, err := s.Initializer.Accept(&PrettyPrinter{indent: 0})
 		if err != nil {
 			return nil, err
 		}
@@ -196,16 +209,16 @@ func (p *PrettyPrinter) VisitForStatement(s *ForStatement) (interface{}, error) 
 		}
 	}
 
-	if s.condition != nil {
-		condResult, err := s.condition.Accept(&PrettyPrinter{indent: 0})
+	if s.Condition != nil {
+		condResult, err := s.Condition.Accept(&PrettyPrinter{indent: 0})
 		if err != nil {
 			return nil, err
 		}
 		cond = condResult.(string)
 	}
 
-	if s.increment != nil {
-		incResult, err := s.increment.Accept(&PrettyPrinter{indent: 0})
+	if s.Increment != nil {
+		incResult, err := s.Increment.Accept(&PrettyPrinter{indent: 0})
 		if err != nil {
 			return nil, err
 		}
@@ -214,13 +227,13 @@ func (p *PrettyPrinter) VisitForStatement(s *ForStatement) (interface{}, error) 
 
 	result := p.getIndent() + fmt.Sprintf("for (%s; %s; %s)", init, cond, inc)
 
-	body, err := s.body.Accept(p)
+	body, err := s.Body.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if body is a Block or a single statement
-	if _, ok := s.body.(*Block); ok {
+	// Check if Body is a Block or a single statement
+	if _, ok := s.Body.(*Block); ok {
 		result += " " + strings.TrimPrefix(body.(string), p.getIndent())
 	} else {
 		result += " {\n"
@@ -242,18 +255,18 @@ func (p *PrettyPrinter) VisitBreakStmt(b *BreakStmt) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
-	if vd.initializer == nil {
-		return p.getIndent() + fmt.Sprintf("var %s;", vd.name), nil
+	if vd.Initializer == nil {
+		return p.getIndent() + fmt.Sprintf("var %s;", vd.Name), nil
 	}
-	initializer, err := vd.initializer.Accept(p)
+	initializer, err := vd.Initializer.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	return p.getIndent() + fmt.Sprintf("var %s = %s;", vd.name, initializer), nil
+	return p.getIndent() + fmt.Sprintf("var %s = %s;", vd.Name, initializer), nil
 }
 
 func (p *PrettyPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
-	expr, err := node.expr.Accept(p)
+	expr, err := node.Expr.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +274,7 @@ func (p *PrettyPrinter) VisitPrintStmt(node *PrintStmt) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
-	expr, err := node.expr.Accept(p)
+	expr, err := node.Expr.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -269,40 +282,40 @@ func (p *PrettyPrinter) VisitExprStmt(node *ExprStmt) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitLogical(b *Logical) (interface{}, error) {
-	left, err := b.left.Accept(p)
+	left, err := b.Left.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	right, err := b.right.Accept(p)
+	right, err := b.Right.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	var op string
-	switch b.token {
+	switch b.Token {
 	case lexer.AND:
 		op = "and"
 	case lexer.OR:
 		op = "or"
 	default:
-		op = b.token.String()
+		op = b.Token.String()
 	}
 
 	return fmt.Sprintf("%s %s %s", left, op, right), nil
 }
 
 func (p *PrettyPrinter) VisitBinary(node *Binary) (interface{}, error) {
-	left, err := node.left.Accept(p)
+	left, err := node.Left.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	right, err := node.right.Accept(p)
+	right, err := node.Right.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	var op string
-	switch node.token {
+	switch node.Token {
 	case lexer.EQUAL_EQUAL:
 		op = "=="
 	case lexer.BANG_EQUAL:
@@ -324,18 +337,18 @@ func (p *PrettyPrinter) VisitBinary(node *Binary) (interface{}, error) {
 	case lexer.SLASH:
 		op = "/"
 	default:
-		op = node.token.String()
+		op = node.Token.String()
 	}
 
 	return fmt.Sprintf("%s %s %s", left, op, right), nil
 }
 
 func (p *PrettyPrinter) VisitLiteral(node *Literal) (interface{}, error) {
-	switch node.token.Type {
+	switch node.Token.Type {
 	case lexer.STRING:
-		return fmt.Sprintf("\"%s\"", node.token.Lexeme), nil
+		return fmt.Sprintf("\"%s\"", node.Token.Lexeme), nil
 	case lexer.NUMBER:
-		return fmt.Sprintf("%v", node.token.Lexeme), nil
+		return fmt.Sprintf("%v", node.Token.Lexeme), nil
 	case lexer.TRUE:
 		return "true", nil
 	case lexer.FALSE:
@@ -343,39 +356,39 @@ func (p *PrettyPrinter) VisitLiteral(node *Literal) (interface{}, error) {
 	case lexer.NIL:
 		return "nil", nil
 	default:
-		return fmt.Sprintf("%v", node.token.Lexeme), nil
+		return fmt.Sprintf("%v", node.Token.Lexeme), nil
 	}
 }
 
 func (p *PrettyPrinter) VisitVariable(b *Variable) (interface{}, error) {
-	return b.name, nil
+	return b.Name, nil
 }
 
 func (p *PrettyPrinter) VisitUnary(node *Unary) (interface{}, error) {
-	expr, err := node.expr.Accept(p)
+	expr, err := node.Expr.Accept(p)
 	if err != nil {
 		return nil, err
 	}
 
 	var op string
-	switch node.token {
+	switch node.Token {
 	case lexer.BANG:
 		op = "!"
 	case lexer.MINUS:
 		op = "-"
 	default:
-		op = node.token.String()
+		op = node.Token.String()
 	}
 
 	return fmt.Sprintf("%s%s", op, expr), nil
 }
 
 func (p *PrettyPrinter) VisitComma(node *Comma) (interface{}, error) {
-	left, err := node.left.Accept(p)
+	left, err := node.Left.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	right, err := node.right.Accept(p)
+	right, err := node.Right.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -383,15 +396,15 @@ func (p *PrettyPrinter) VisitComma(node *Comma) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitTernary(node *Ternary) (interface{}, error) {
-	left, err := node.left.Accept(p)
+	left, err := node.Left.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	middle, err := node.middle.Accept(p)
+	middle, err := node.Middle.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	right, err := node.right.Accept(p)
+	right, err := node.Right.Accept(p)
 	if err != nil {
 		return nil, err
 	}
@@ -399,15 +412,15 @@ func (p *PrettyPrinter) VisitTernary(node *Ternary) (interface{}, error) {
 }
 
 func (p *PrettyPrinter) VisitAssign(b *Assign) (interface{}, error) {
-	value, err := b.value.Accept(p)
+	value, err := b.Value.Accept(p)
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("%s = %s", b.name, value), nil
+	return fmt.Sprintf("%s = %s", b.Name, value), nil
 }
 
 func (p *PrettyPrinter) VisitGrouping(node *Grouping) (interface{}, error) {
-	expr, err := node.expr.Accept(p)
+	expr, err := node.Expr.Accept(p)
 	if err != nil {
 		return nil, err
 	}

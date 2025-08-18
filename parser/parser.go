@@ -1,8 +1,13 @@
 package parser
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
 
+	"github.com/matthisk/lox/ds"
 	"github.com/matthisk/lox/lexer"
 )
 
@@ -23,7 +28,7 @@ whileStmt   -> "while" "(" expression ")" statement;
 forStmt     -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement;
 printStmt   -> "print" expression ";";
 block       -> "{" declaration* "}";
-controlStmt -> ( BREAK | CONTINUE ) ";"; // Can only happen while in for/while/if statement body.
+controlStmt -> ( BREAK | CONTINUE ) ";"; // Can only happen while in for/while/if statement Body.
 
 // EXPRESSION GRAMMAR
 expression     -> comma;
@@ -48,41 +53,85 @@ type ContextItem struct {
 }
 
 type Parser struct {
+	source string
 	tokens []lexer.Token
 	// State
 	index        int
-	contextStack *Stack[*ContextItem]
+	contextStack *ds.Stack[*ContextItem]
+	errors       *Errors
 }
 
 func New(toks []lexer.Token) *Parser {
 	return &Parser{
+		source:       "",
 		tokens:       toks,
 		index:        0,
-		contextStack: NewStack[*ContextItem](),
+		contextStack: ds.NewStack[*ContextItem](),
 	}
 }
 
 func (p *Parser) Parse() ([]Stmt, error) {
+	// In the rare case we want to call the parser twice on the same input,
+	// we reset the state.
+	p.index = 0
+	p.errors = nil
+	p.contextStack = ds.NewStack[*ContextItem]()
+
 	return p.statements()
+}
+
+// ReportErrors returns a stream which
+func (p *Parser) ReportErrors() string {
+	var w = bytes.NewBufferString("")
+
+	for _, e := range p.errors.errs {
+		fmt.Fprintf(w, "%s\n\n", e.Error())
+		atLine := e.at.StartPos.Line
+		sourceLines := strings.Split(p.source, "\n")
+		if atLine > 1 {
+			printSourceLine(w, atLine-2, sourceLines[atLine-3])
+		}
+		if atLine > 0 {
+			printSourceLine(w, atLine-1, sourceLines[atLine-2])
+		}
+		printSourceLine(w, atLine, sourceLines[atLine-1])
+		fmt.Fprintf(w, "%s  %s^\n", strings.Repeat(" ", len(strconv.Itoa(atLine))), strings.Repeat(" ", e.at.StartPos.Column-1))
+		fmt.Fprintf(w, "\n")
+	}
+
+	return w.String()
+}
+
+func printSourceLine(w io.Writer, n int, line string) {
+	fmt.Fprintf(w, "%d| %s\n", n, line)
+}
+
+func findLine(sourceLines []string, lineNumber int) string {
+	return sourceLines[lineNumber-1]
 }
 
 func (p *Parser) Expression() (Expr, error) {
 	return p.expression()
 }
 
-func (p *Parser) statements() ([]Stmt, error) {
+func (p *Parser) statements() ([]Stmt, *Errors) {
 	var result []Stmt
+	var errors []*Error
 
 	for !p.atEnd() {
 		stmt, err := p.declStatement()
-		if err != nil {
-			return nil, err
-		}
 
-		result = append(result, stmt)
+		if stmt != nil {
+			result = append(result, stmt)
+		}
+		if err != nil {
+			errors = append(errors, err.(*Error))
+		}
 	}
 
-	return result, nil
+	p.errors = NewErrors(errors)
+
+	return result, p.errors
 }
 
 func (p *Parser) declStatement() (Stmt, error) {
@@ -95,9 +144,7 @@ func (p *Parser) declStatement() (Stmt, error) {
 		stmt, err = p.function("function")
 	} else if p.match(lexer.CLASS) {
 		stmt, err = p.class()
-	}
-
-	if stmt == nil {
+	} else {
 		stmt, err = p.statement()
 	}
 
@@ -106,6 +153,37 @@ func (p *Parser) declStatement() (Stmt, error) {
 	}
 
 	return stmt, err
+}
+
+func (p *Parser) synchronize() {
+	p.advance()
+
+	for !p.atEnd() {
+		if p.previous().Type == lexer.SEMICOLON {
+			return
+		}
+		switch p.peek().Type {
+		case lexer.CLASS:
+			return
+		case lexer.FUN:
+			return
+		case lexer.VAR:
+			return
+		case lexer.FOR:
+			return
+		case lexer.IF:
+			return
+		case lexer.WHILE:
+			return
+		case lexer.PRINT:
+			return
+		case lexer.RETURN:
+			return
+		default:
+		}
+
+		p.advance()
+	}
 }
 
 func (p *Parser) statement() (Stmt, error) {
@@ -147,7 +225,7 @@ func (p *Parser) statement() (Stmt, error) {
 
 		endPos := p.previous().EndPos
 
-		return &BreakStmt{BaseNode{startPos: startPos, endPos: endPos}}, nil
+		return &BreakStmt{BaseNode{StartPos: startPos, EndPos: endPos}}, nil
 	}
 
 	if p.match(lexer.CONTINUE) {
@@ -164,7 +242,7 @@ func (p *Parser) statement() (Stmt, error) {
 
 		endPos := p.previous().EndPos
 
-		return &ContinueStmt{BaseNode{startPos: startPos, endPos: endPos}}, nil
+		return &ContinueStmt{BaseNode{StartPos: startPos, EndPos: endPos}}, nil
 	}
 
 	return p.exprStatement()
@@ -173,14 +251,14 @@ func (p *Parser) statement() (Stmt, error) {
 func (p *Parser) class() (Stmt, error) {
 	startPos := p.previous().StartPos
 
-	err := p.consume(lexer.IDENTIFIER, "Expect class identifier")
+	err := p.consume(lexer.IDENTIFIER, "I was expecting to see a class Name after the `class` keyword.")
 	if err != nil {
 		return nil, err
 	}
 
 	name := p.previous()
 
-	err = p.consume(lexer.LEFT_BRACE, "Expect '{' after class.")
+	err = p.consume(lexer.LEFT_BRACE, "I was expecting to see an opening brace `{` after the class Name.")
 	if err != nil {
 		return nil, err
 	}
@@ -201,24 +279,24 @@ func (p *Parser) class() (Stmt, error) {
 
 	return &ClassStatement{
 		BaseNode: BaseNode{
-			startPos: startPos,
-			endPos:   p.previous().EndPos,
+			StartPos: startPos,
+			EndPos:   p.previous().EndPos,
 		},
-		name:    name,
-		methods: methods,
+		Name:    name,
+		Methods: methods,
 	}, nil
 }
 
 func (p *Parser) function(funType string) (Stmt, error) {
 	pos := p.previous().StartPos
-	err := p.consume(lexer.IDENTIFIER, fmt.Sprintf("Expect %s name.", funType))
+	err := p.consume(lexer.IDENTIFIER, fmt.Sprintf("Expect %s Name.", funType))
 	if err != nil {
 		return nil, err
 	}
 
 	funName := p.previous()
 
-	err = p.consume(lexer.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s name.", funType))
+	err = p.consume(lexer.LEFT_PAREN, fmt.Sprintf("Expect '(' after %s Name.", funType))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +311,7 @@ func (p *Parser) function(funType string) (Stmt, error) {
 		return nil, err
 	}
 
-	err = p.consume(lexer.LEFT_BRACE, fmt.Sprintf("Expect '{' before %s body.", funType))
+	err = p.consume(lexer.LEFT_BRACE, fmt.Sprintf("Expect '{' before %s Body.", funType))
 	if err != nil {
 		return nil, err
 	}
@@ -245,12 +323,12 @@ func (p *Parser) function(funType string) (Stmt, error) {
 
 	return &Function{
 		BaseNode: BaseNode{
-			startPos: pos,
-			endPos:   p.previous().EndPos,
+			StartPos: pos,
+			EndPos:   p.previous().EndPos,
 		},
-		name:   funName,
-		params: parameters,
-		body:   body.(*Block).stmts,
+		Name:   funName,
+		Params: parameters,
+		Body:   body.(*Block).Stmts,
 	}, nil
 }
 
@@ -285,7 +363,7 @@ func (p *Parser) parameters() ([]lexer.Token, error) {
 func (p *Parser) varDeclStatement() (Stmt, error) {
 	startPos := p.previous().StartPos
 	var initializer Expr
-	err := p.consume(lexer.IDENTIFIER, "Expect variable name.")
+	err := p.consume(lexer.IDENTIFIER, "Expect variable Name.")
 	if err != nil {
 		return nil, err
 	}
@@ -306,11 +384,11 @@ func (p *Parser) varDeclStatement() (Stmt, error) {
 
 	return &VarDecl{
 		BaseNode: BaseNode{
-			startPos: startPos,
-			endPos:   p.previous().EndPos,
+			StartPos: startPos,
+			EndPos:   p.previous().EndPos,
 		},
-		name:        fmt.Sprintf("%s", name.Lexeme),
-		initializer: initializer,
+		Name:        fmt.Sprintf("%s", name.Lexeme),
+		Initializer: initializer,
 	}, nil
 }
 
@@ -328,10 +406,10 @@ func (p *Parser) printStatement() (Stmt, error) {
 
 	return &PrintStmt{
 		BaseNode: BaseNode{
-			startPos: startPos,
-			endPos:   GetExprEndPos(expr),
+			StartPos: startPos,
+			EndPos:   GetExprEndPos(expr),
 		},
-		expr: expr,
+		Expr: expr,
 	}, nil
 }
 
@@ -354,10 +432,10 @@ func (p *Parser) blockStatement() (Stmt, error) {
 
 	return &Block{
 		BaseNode: BaseNode{
-			startPos: startPos,
-			endPos:   p.previous().EndPos,
+			StartPos: startPos,
+			EndPos:   p.previous().EndPos,
 		},
-		stmts: result,
+		Stmts: result,
 	}, nil
 }
 
@@ -396,12 +474,12 @@ func (p *Parser) ifStatement() (Stmt, error) {
 
 	return &IfStatement{
 		BaseNode: BaseNode{
-			startPos: pos,
-			endPos:   p.previous().EndPos,
+			StartPos: pos,
+			EndPos:   p.previous().EndPos,
 		},
-		cond:      cond,
-		ifBlock:   ifBlock,
-		elseBlock: elseBlock,
+		Cond:      cond,
+		IfBlock:   ifBlock,
+		ElseBlock: elseBlock,
 	}, nil
 }
 
@@ -432,11 +510,11 @@ func (p *Parser) whileStatement() (Stmt, error) {
 
 	return &WhileStatement{
 		BaseNode: BaseNode{
-			startPos: pos,
-			endPos:   p.previous().EndPos,
+			StartPos: pos,
+			EndPos:   p.previous().EndPos,
 		},
-		cond: cond,
-		body: body,
+		Cond: cond,
+		Body: body,
 	}, nil
 }
 
@@ -492,7 +570,7 @@ func (p *Parser) forStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	// Parse body
+	// Parse Body
 	body, err := p.statement()
 	if err != nil {
 		return nil, err
@@ -502,26 +580,26 @@ func (p *Parser) forStatement() (Stmt, error) {
 	if increment != nil {
 		body = &Block{
 			BaseNode: BaseNode{},
-			stmts:    []Stmt{body, &ExprStmt{expr: increment}},
+			Stmts:    []Stmt{body, &ExprStmt{Expr: increment}},
 		}
 	}
 
 	if condition == nil {
-		condition = &Literal{token: lexer.Token{Type: lexer.TRUE}}
+		condition = &Literal{Token: lexer.Token{Type: lexer.TRUE}}
 	}
 
 	body = &WhileStatement{
 		BaseNode: BaseNode{
-			startPos: pos,
-			endPos:   p.previous().EndPos,
+			StartPos: pos,
+			EndPos:   p.previous().EndPos,
 		},
-		cond: condition,
-		body: body,
+		Cond: condition,
+		Body: body,
 	}
 
 	if initializer != nil {
 		body = &Block{
-			stmts: []Stmt{initializer, body},
+			Stmts: []Stmt{initializer, body},
 		}
 	}
 
@@ -547,10 +625,10 @@ func (p *Parser) returnStmt() (Stmt, error) {
 
 	return &ReturnStmt{
 		BaseNode: BaseNode{
-			startPos: pos,
-			endPos:   p.previous().EndPos,
+			StartPos: pos,
+			EndPos:   p.previous().EndPos,
 		},
-		expr: expression,
+		Expr: expression,
 	}, nil
 
 }
@@ -568,35 +646,11 @@ func (p *Parser) exprStatement() (Stmt, error) {
 
 	return &ExprStmt{
 		BaseNode: BaseNode{
-			startPos: GetExprStartPos(expr),
-			endPos:   GetExprEndPos(expr),
+			StartPos: GetExprStartPos(expr),
+			EndPos:   GetExprEndPos(expr),
 		},
-		expr: expr,
+		Expr: expr,
 	}, nil
-}
-
-func (p *Parser) synchronize() {
-	p.advance()
-
-	for !p.atEnd() {
-		if p.previous().Type == lexer.SEMICOLON {
-			return
-		}
-		switch p.peek().Type {
-		case lexer.CLASS:
-		case lexer.FUN:
-		case lexer.VAR:
-		case lexer.FOR:
-		case lexer.IF:
-		case lexer.WHILE:
-		case lexer.PRINT:
-		case lexer.RETURN:
-			return
-		default:
-		}
-
-		p.advance()
-	}
 }
 
 func (p *Parser) expression() (Expr, error) {
@@ -617,8 +671,8 @@ func (p *Parser) comma() (Expr, error) {
 
 		expr = &Comma{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			right:    right,
+			Left:     expr,
+			Right:    right,
 		}
 	}
 
@@ -645,9 +699,9 @@ func (p *Parser) ternary() (Expr, error) {
 
 			expr = &Ternary{
 				BaseNode: NewBaseNodeFromExprs(expr, right),
-				left:     expr,
-				middle:   middle,
-				right:    right,
+				Left:     expr,
+				Middle:   middle,
+				Right:    right,
 			}
 
 		} else {
@@ -671,24 +725,24 @@ func (p *Parser) assignment() (Expr, error) {
 		}
 
 		if e, ok := expr.(*Variable); ok {
-			name := e.name
+			name := e.Name
 			return &Assign{
 				BaseNode: BaseNode{
-					startPos: GetExprStartPos(expr),
-					endPos:   GetExprEndPos(value),
+					StartPos: GetExprStartPos(expr),
+					EndPos:   GetExprEndPos(value),
 				},
-				name:  name,
-				value: value,
+				Name:  name,
+				Value: value,
 			}, nil
 		} else if e, ok := expr.(*GetExpr); ok {
 			return &SetExpr{
 				BaseNode: BaseNode{
-					startPos: GetExprStartPos(expr),
-					endPos:   GetExprEndPos(value),
+					StartPos: GetExprStartPos(expr),
+					EndPos:   GetExprEndPos(value),
 				},
-				object: e.from,
-				name:   e.property,
-				value:  value,
+				Object: e.From,
+				Name:   e.Property,
+				Value:  value,
 			}, nil
 
 		}
@@ -714,9 +768,9 @@ func (p *Parser) logicOr() (Expr, error) {
 
 		expr = &Logical{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			token:    operator.Type,
-			right:    right,
+			Left:     expr,
+			Token:    operator.Type,
+			Right:    right,
 		}
 	}
 
@@ -738,9 +792,9 @@ func (p *Parser) logicAnd() (Expr, error) {
 
 		expr = &Logical{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			token:    operator.Type,
-			right:    right,
+			Left:     expr,
+			Token:    operator.Type,
+			Right:    right,
 		}
 	}
 
@@ -761,9 +815,9 @@ func (p *Parser) equality() (Expr, error) {
 		}
 		expr = &Binary{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			token:    operator.Type,
-			right:    right,
+			Left:     expr,
+			Token:    operator.Type,
+			Right:    right,
 		}
 	}
 
@@ -784,9 +838,9 @@ func (p *Parser) comparison() (Expr, error) {
 		}
 		expr = &Binary{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			token:    operator.Type,
-			right:    right,
+			Left:     expr,
+			Token:    operator.Type,
+			Right:    right,
 		}
 	}
 
@@ -807,9 +861,9 @@ func (p *Parser) term() (Expr, error) {
 		}
 		expr = &Binary{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			token:    operator.Type,
-			right:    right,
+			Left:     expr,
+			Token:    operator.Type,
+			Right:    right,
 		}
 	}
 
@@ -830,9 +884,9 @@ func (p *Parser) factor() (Expr, error) {
 		}
 		expr = &Binary{
 			BaseNode: NewBaseNodeFromExprs(expr, right),
-			left:     expr,
-			token:    operator.Type,
-			right:    right,
+			Left:     expr,
+			Token:    operator.Type,
+			Right:    right,
 		}
 	}
 
@@ -845,11 +899,11 @@ func (p *Parser) unary() (Expr, error) {
 		right, _ := p.unary()
 		return &Unary{
 			BaseNode: BaseNode{
-				startPos: operator.StartPos,
-				endPos:   GetExprEndPos(right),
+				StartPos: operator.StartPos,
+				EndPos:   GetExprEndPos(right),
 			},
-			token: operator.Type,
-			expr:  right,
+			Token: operator.Type,
+			Expr:  right,
 		}, nil
 	}
 
@@ -876,12 +930,12 @@ func (p *Parser) call() (Expr, error) {
 
 			expr = &Call{
 				BaseNode: BaseNode{
-					startPos: GetExprStartPos(expr),
-					endPos:   p.previous().EndPos,
+					StartPos: GetExprStartPos(expr),
+					EndPos:   p.previous().EndPos,
 				},
-				callee:    expr,
-				paren:     p.previous(),
-				arguments: arguments,
+				Callee:    expr,
+				Paren:     p.previous(),
+				Arguments: arguments,
 			}
 		} else if p.match(lexer.DOT) {
 			err := p.consume(lexer.IDENTIFIER, "Expect identifier after '.'")
@@ -891,11 +945,11 @@ func (p *Parser) call() (Expr, error) {
 
 			expr = &GetExpr{
 				BaseNode: BaseNode{
-					startPos: GetExprStartPos(expr),
-					endPos:   p.previous().EndPos,
+					StartPos: GetExprStartPos(expr),
+					EndPos:   p.previous().EndPos,
 				},
-				from:     expr,
-				property: p.previous(),
+				From:     expr,
+				Property: p.previous(),
 			}
 		} else {
 			break
@@ -939,10 +993,10 @@ func (p *Parser) primary() (Expr, error) {
 		token := p.previous()
 		return &Literal{
 			BaseNode: BaseNode{
-				startPos: token.StartPos,
-				endPos:   token.EndPos,
+				StartPos: token.StartPos,
+				EndPos:   token.EndPos,
 			},
-			token: token,
+			Token: token,
 		}, nil
 	}
 
@@ -950,10 +1004,10 @@ func (p *Parser) primary() (Expr, error) {
 		token := p.previous()
 		return &Variable{
 			BaseNode: BaseNode{
-				startPos: token.StartPos,
-				endPos:   token.EndPos,
+				StartPos: token.StartPos,
+				EndPos:   token.EndPos,
 			},
-			name: fmt.Sprintf("%s", token.Lexeme),
+			Name: fmt.Sprintf("%s", token.Lexeme),
 		}, nil
 	}
 
@@ -967,10 +1021,10 @@ func (p *Parser) primary() (Expr, error) {
 		rightParen := p.previous()
 		return &Grouping{
 			BaseNode: BaseNode{
-				startPos: leftParen.StartPos,
-				endPos:   rightParen.EndPos,
+				StartPos: leftParen.StartPos,
+				EndPos:   rightParen.EndPos,
 			},
-			expr: expr,
+			Expr: expr,
 		}, nil
 	}
 

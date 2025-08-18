@@ -1,8 +1,10 @@
-package parser
+package interpreter
 
 import (
 	"fmt"
 	"time"
+
+	"github.com/matthisk/lox/parser"
 )
 
 type LoxCallable interface {
@@ -65,22 +67,22 @@ func (l *LoxClass) FindMethod(property string) LoxCallable {
 }
 
 type LoxFunction struct {
-	declaration *Function
+	declaration *parser.Function
 	closure     *Environment
 }
 
 func (l *LoxFunction) Arity() int {
-	return len(l.declaration.params)
+	return len(l.declaration.Params)
 }
 
 func (l *LoxFunction) Call(i *Interpreter, args []interface{}) (interface{}, error) {
 	env := NewEnvironment(l.closure)
 
-	for j, param := range l.declaration.params {
+	for j, param := range l.declaration.Params {
 		env.Define(param.Lexeme.(string), args[j])
 	}
 
-	return i.executeBlock(l.declaration.body, env)
+	return i.executeBlock(l.declaration.Body, env)
 }
 
 type Clock struct{}
@@ -91,4 +93,14 @@ func (c *Clock) Arity() int {
 
 func (c *Clock) Call(i *Interpreter, args []interface{}) (interface{}, error) {
 	return float64(time.Now().UnixMilli()), nil
+}
+
+type Printer interface {
+	Print(value interface{})
+}
+
+type DefaultPrinter struct{}
+
+func (p DefaultPrinter) Print(value interface{}) {
+	fmt.Println(value)
 }

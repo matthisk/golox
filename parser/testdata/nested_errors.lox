@@ -1,0 +1,98 @@
+// Test file for complex nested parsing errors
+
+// Deeply nested expressions with errors
+var complex = ((((5 + 3) * 2) - 1) / ;
+
+// Nested function calls with errors
+var result = outer(inner(broken(;
+
+// Mixed expression and statement errors
+if ((x > 5) and (y < 10) {
+  for (var i = 0; i < 10 i = i + 1) {
+    while (condition {
+      if (nested > 0 {
+        print "deeply nested";
+      } else
+        print "missing brace";
+    }
+  }
+}
+
+// Nested class and function errors
+class Outer {
+  method1() {
+    class Inner {
+      method2( {
+        fun localFunc(x, y {
+          return x + y;
+        }
+      }
+    }
+  }
+}
+
+// Complex ternary nesting with errors
+var nested = condition1 ? 
+  (condition2 ? value1 : value2) 
+  (condition3 ? value3 : value4);
+
+// Nested block errors
+{
+  {
+    {
+      var x = 5;
+      if (x > 0) {
+        while (true) {
+          for (var i = 0; i < x; i = i + 1) {
+            {
+              break  // Missing semicolon in deeply nested context
+            }
+          }
+        }
+      }
+    } // Missing closing brace
+  }
+}
+
+// Function with nested control flow errors
+fun complexFunction(param1, param2) {
+  if (param1 > 0) {
+    while (param2 < 10) {
+      for (var i = 0 i < param1; i = i + 1) {  // Missing semicolon
+        if (i == 5) {
+          return "found five"  // Missing semicolon
+        } else {
+          continue;
+        }
+      }
+      param2 = param2 + 1;
+    }
+  } else
+    return "negative";  // Missing braces, might be error
+  }
+}
+
+// Nested property access with errors
+var obj = OuterClass();
+var value = obj.inner.method().property.;  // Trailing dot
+
+// Complex assignment errors in nested context
+{
+  var array = [1, 2, 3];  // Arrays might not be supported
+  array[0] = 42;          // Array access might not be supported
+  
+  var obj = SomeClass();
+  obj.prop1.prop2 + 10 = 20;  // Invalid assignment target
+}
+
+// Nested logical expressions with errors
+var logic = (true and false) or (not or not false);
+
+// Recursive function definition errors  
+fun fibonacci(n) {
+  if (n <= 1) {
+    return n;
+  } else {
+    return fibonacci(n - 1) + fibonacci(n - 2;  // Missing closing paren
+  }
+}

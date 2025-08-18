@@ -1,0 +1,81 @@
+// Test file for control flow statement errors
+
+// Missing condition in if
+if {
+  print "no condition";
+}
+
+// Missing opening paren in if
+if x > 5) {
+  print "missing open paren";
+}
+
+// Missing closing paren in if  
+if (x > 5 {
+  print "missing close paren";
+}
+
+// Missing statement after if
+if (x > 5);
+
+// Missing condition in while
+while {
+  print "infinite?";
+}
+
+// Missing opening paren in while
+while x > 0) {
+  x = x - 1;
+}
+
+// Missing closing paren in while
+while (x > 0 {
+  x = x - 1;
+}
+
+// Missing statement in while
+while (true);
+
+// Break outside loop
+{
+  break;
+}
+
+// Continue outside loop  
+{
+  continue;
+}
+
+// Malformed for loop - missing semicolons
+for (var i = 0 i < 10 i = i + 1) {
+  print i;
+}
+
+// Malformed for loop - missing opening paren
+for var i = 0; i < 10; i = i + 1) {
+  print i;
+}
+
+// Malformed for loop - missing closing paren
+for (var i = 0; i < 10; i = i + 1 {
+  print i;
+}
+
+// For loop with invalid initializer
+for (5; i < 10; i = i + 1) {
+  print i;
+}
+
+// Else without if
+else {
+  print "orphaned else";
+}
+
+// Multiple else clauses
+if (true) {
+  print "first";
+} else {
+  print "second";  
+} else {
+  print "third";
+}

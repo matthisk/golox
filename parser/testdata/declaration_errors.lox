@@ -1,0 +1,67 @@
+// Test file for variable declaration errors
+
+// Missing variable name
+var = 42;
+
+// Missing semicolon in variable declaration
+var x = 5
+
+// Variable declaration with keyword as name
+var var = 10;
+var if = true;
+var while = "loop";
+var class = "type";
+
+// Multiple variable declarations on same line (invalid syntax)
+var a, b = 1, 2;
+
+// Assignment without declaration
+undeclared = 42;
+
+// Variable declaration with invalid initializer
+var x = ;
+var y = 5 +;
+
+// Redeclaration in same scope
+{
+  var x = 1;
+  var x = 2;  // Should be error in resolver
+}
+
+// Using variable before declaration
+print undefinedVar;
+var undefinedVar = 42;
+
+// Variable name starting with number
+var 123invalid = "bad";
+
+// Variable name with special characters
+var hello-world = "hyphen";
+var hello@world = "at symbol";
+
+// Empty variable declaration
+var;
+
+// Variable declaration with incomplete expression
+var incomplete = (5 + 3;
+
+// Variable assignment with invalid target
+5 = someValue;
+"string" = anotherValue;
+true = falseValue;
+
+// Chained assignments (might not be supported)
+var a, b, c;
+a = b = c = 42;
+
+// Complex invalid assignments
+var obj = SomeClass();
+obj.prop + 5 = 10;  // Can't assign to expression
+
+// Assignment operators that don't exist
+var x = 5;
+x += 3;  // += might not be implemented
+x *= 2;  // *= might not be implemented
+
+// Missing equals in declaration with initializer
+var x 42;

@@ -1,0 +1,73 @@
+// Test file for function declaration and call errors
+
+// Missing function name
+fun (x, y) {
+  return x + y;
+}
+
+// Missing parameter list
+fun add {
+  return 42;
+}
+
+// Missing opening parenthesis for parameters  
+fun subtract x, y) {
+  return x - y;
+}
+
+// Missing closing parenthesis for parameters
+fun multiply(x, y {
+  return x * y;
+}
+
+// Missing function body
+fun divide(x, y);
+
+// Missing opening brace for body
+fun power(x, y)
+  return x * y;
+}
+
+// Missing closing brace for body
+fun modulo(x, y) {
+  return x % y;
+
+// Duplicate parameter names
+fun duplicate(x, x) {
+  return x;
+}
+
+// Too many parameters (>255)
+fun tooManyParams(
+  a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
+  // ... imagine 250+ more parameters
+  a255, a256
+) {
+  return a1;
+}
+
+// Missing comma between parameters
+fun badParams(x y z) {
+  return x;
+}
+
+// Invalid parameter name (keyword)
+fun keywordParam(var, if) {
+  return var + if;
+}
+
+// Function call with missing closing paren
+var result = add(5, 3;
+
+// Function call with extra comma
+var result2 = add(5, 3,);
+
+// Too many arguments in call (>255)
+var tooMany = someFunc(
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  // ... imagine 250+ more arguments  
+  255, 256
+);
+
+// Return outside function
+return 42;

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/matthisk/lox/interpreter"
 	"github.com/matthisk/lox/lexer"
 	"github.com/matthisk/lox/parser"
 )
@@ -50,7 +51,7 @@ func runFile(filename string) {
 		os.Exit(1)
 	}
 
-	interpreter := parser.NewInterpreter()
+	interpreter := interpreter.NewInterpreter()
 	err = interpreter.Run(stmts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
@@ -63,7 +64,7 @@ func runREPL() {
 	fmt.Println("Type Lox expressions or statements. Press Ctrl+C to exit.")
 	fmt.Println()
 
-	interpreter := parser.NewInterpreter()
+	interpreter := interpreter.NewInterpreter()
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -97,7 +98,7 @@ func runREPL() {
 	}
 }
 
-func evaluateREPLInput(source string, interpreter *parser.Interpreter) {
+func evaluateREPLInput(source string, interpreter *interpreter.Interpreter) {
 	// Lexical analysis
 	lx := lexer.New(bytes.NewBufferString(source))
 	lexResult := lexer.Consume(lx)
@@ -111,7 +112,7 @@ func evaluateREPLInput(source string, interpreter *parser.Interpreter) {
 	stmts, err := p.Parse()
 	if err == nil && len(stmts) > 0 {
 		// Successfully parsed as statements - execute them
-		err = interpreter.Run(stmts)
+		err := interpreter.Run(stmts)
 		if err != nil {
 			fmt.Printf("Runtime error: %v\n", err)
 		}

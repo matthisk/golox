@@ -1,6 +1,9 @@
 package parser
 
 import (
+	"bytes"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/matthisk/lox/lexer"
@@ -1350,7 +1353,7 @@ func TestParserStatementsTD(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "for without statement body",
+			name: "for without statement Body",
 			tokens: []lexer.Token{
 				{Type: lexer.FOR},
 				{Type: lexer.LEFT_PAREN},
@@ -1387,16 +1390,16 @@ func TestParserStatementsTD(t *testing.T) {
 				{Type: lexer.FUN},
 				{Type: lexer.IDENTIFIER, Lexeme: "greet"},
 				{Type: lexer.LEFT_PAREN},
-				{Type: lexer.IDENTIFIER, Lexeme: "name"},
+				{Type: lexer.IDENTIFIER, Lexeme: "Name"},
 				{Type: lexer.RIGHT_PAREN},
 				{Type: lexer.LEFT_BRACE},
 				{Type: lexer.PRINT},
-				{Type: lexer.IDENTIFIER, Lexeme: "name"},
+				{Type: lexer.IDENTIFIER, Lexeme: "Name"},
 				{Type: lexer.SEMICOLON},
 				{Type: lexer.RIGHT_BRACE},
 				{Type: lexer.EOF},
 			},
-			expected: "fun greet(name) {\nprint name;\n}",
+			expected: "fun greet(Name) {\nprint Name;\n}",
 			wantErr:  false,
 		},
 		{
@@ -1444,7 +1447,7 @@ func TestParserStatementsTD(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "function with empty body",
+			name: "function with empty Body",
 			tokens: []lexer.Token{
 				{Type: lexer.FUN},
 				{Type: lexer.IDENTIFIER, Lexeme: "empty"},
@@ -1458,7 +1461,7 @@ func TestParserStatementsTD(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "function with complex body",
+			name: "function with complex Body",
 			tokens: []lexer.Token{
 				{Type: lexer.FUN},
 				{Type: lexer.IDENTIFIER, Lexeme: "complex"},
@@ -1560,7 +1563,7 @@ func TestParserStatementsTD(t *testing.T) {
 
 		// Error cases for function statements
 		{
-			name: "function without name",
+			name: "function without Name",
 			tokens: []lexer.Token{
 				{Type: lexer.FUN},
 				{Type: lexer.LEFT_PAREN},
@@ -1600,7 +1603,7 @@ func TestParserStatementsTD(t *testing.T) {
 			wantErr:  true,
 		},
 		{
-			name: "function without body",
+			name: "function without Body",
 			tokens: []lexer.Token{
 				{Type: lexer.FUN},
 				{Type: lexer.IDENTIFIER, Lexeme: "test"},
@@ -1700,4 +1703,22 @@ func TestParserStatementsTD(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestErrorHandling(t *testing.T) {
+	data, err := os.ReadFile("testdata/function_errors.lox")
+	if err != nil {
+		t.Fatalf("Failed to read test file: %v", err)
+	}
+
+	l := lexer.New(bytes.NewReader(data))
+	toks := lexer.Consume(l)
+	if toks.Err != nil {
+		t.Fatalf("Failed to lex test file: %v", toks.Err)
+	}
+
+	parser := New(toks.Tokens)
+	_, _ = parser.Parse()
+
+	fmt.Print(parser.ReportErrors())
 }

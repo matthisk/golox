@@ -37,7 +37,7 @@ type Stmt interface {
 
 type Block struct {
 	BaseNode
-	stmts []Stmt
+	Stmts []Stmt
 }
 
 func (b *Block) Accept(v Visitor) (interface{}, error) {
@@ -46,8 +46,8 @@ func (b *Block) Accept(v Visitor) (interface{}, error) {
 
 type VarDecl struct {
 	BaseNode
-	name        string
-	initializer Expr
+	Name        string
+	Initializer Expr
 }
 
 func (vd *VarDecl) Accept(v Visitor) (interface{}, error) {
@@ -56,7 +56,7 @@ func (vd *VarDecl) Accept(v Visitor) (interface{}, error) {
 
 type ExprStmt struct {
 	BaseNode
-	expr Expr
+	Expr Expr
 }
 
 func (e *ExprStmt) Accept(v Visitor) (interface{}, error) {
@@ -65,7 +65,7 @@ func (e *ExprStmt) Accept(v Visitor) (interface{}, error) {
 
 type PrintStmt struct {
 	BaseNode
-	expr Expr
+	Expr Expr
 }
 
 func (p *PrintStmt) Accept(v Visitor) (interface{}, error) {
@@ -74,7 +74,7 @@ func (p *PrintStmt) Accept(v Visitor) (interface{}, error) {
 
 type ReturnStmt struct {
 	BaseNode
-	expr Expr
+	Expr Expr
 }
 
 func (r *ReturnStmt) Accept(v Visitor) (interface{}, error) {
@@ -99,9 +99,9 @@ func (c *ContinueStmt) Accept(v Visitor) (interface{}, error) {
 
 type IfStatement struct {
 	BaseNode
-	cond      Expr
-	ifBlock   Stmt
-	elseBlock Stmt
+	Cond      Expr
+	IfBlock   Stmt
+	ElseBlock Stmt
 }
 
 func (s *IfStatement) Accept(v Visitor) (interface{}, error) {
@@ -110,8 +110,8 @@ func (s *IfStatement) Accept(v Visitor) (interface{}, error) {
 
 type WhileStatement struct {
 	BaseNode
-	cond Expr
-	body Stmt
+	Cond Expr
+	Body Stmt
 }
 
 func (s *WhileStatement) Accept(v Visitor) (interface{}, error) {
@@ -120,8 +120,8 @@ func (s *WhileStatement) Accept(v Visitor) (interface{}, error) {
 
 type ClassStatement struct {
 	BaseNode
-	name    lexer.Token
-	methods []*Function
+	Name    lexer.Token
+	Methods []*Function
 }
 
 func (s *ClassStatement) Accept(v Visitor) (interface{}, error) {
@@ -130,9 +130,9 @@ func (s *ClassStatement) Accept(v Visitor) (interface{}, error) {
 
 type Function struct {
 	BaseNode
-	name   lexer.Token
-	params []lexer.Token
-	body   []Stmt
+	Name   lexer.Token
+	Params []lexer.Token
+	Body   []Stmt
 }
 
 func (f *Function) Accept(v Visitor) (interface{}, error) {
@@ -141,10 +141,10 @@ func (f *Function) Accept(v Visitor) (interface{}, error) {
 
 type ForStatement struct {
 	BaseNode
-	initializer Stmt // Can be VarDecl, ExprStmt, or nil
-	condition   Expr // Can be nil
-	increment   Expr // Can be nil
-	body        Stmt
+	Initializer Stmt // Can be VarDecl, ExprStmt, or nil
+	Condition   Expr // Can be nil
+	Increment   Expr // Can be nil
+	Body        Stmt
 }
 
 func (s *ForStatement) Accept(v Visitor) (interface{}, error) {
@@ -156,31 +156,31 @@ type Expr interface {
 }
 
 type BaseNode struct {
-	startPos lexer.Pos
-	endPos   lexer.Pos
+	StartPos lexer.Pos
+	EndPos   lexer.Pos
 }
 
 // GetStartPos returns the start position of the BaseNode
 func (b *BaseNode) GetStartPos() lexer.Pos {
-	return b.startPos
+	return b.StartPos
 }
 
 // GetEndPos returns the end position of the BaseNode
 func (b *BaseNode) GetEndPos() lexer.Pos {
-	return b.endPos
+	return b.EndPos
 }
 
 // SetPos sets both start and end positions of the BaseNode
 func (b *BaseNode) SetPos(start, end lexer.Pos) {
-	b.startPos = start
-	b.endPos = end
+	b.StartPos = start
+	b.EndPos = end
 }
 
 type Call struct {
 	BaseNode
-	callee    Expr
-	paren     lexer.Token
-	arguments []Expr
+	Callee    Expr
+	Paren     lexer.Token
+	Arguments []Expr
 }
 
 func (c *Call) Accept(v Visitor) (interface{}, error) {
@@ -189,9 +189,9 @@ func (c *Call) Accept(v Visitor) (interface{}, error) {
 
 type Binary struct {
 	BaseNode
-	left  Expr
-	token lexer.TokenType
-	right Expr
+	Left  Expr
+	Token lexer.TokenType
+	Right Expr
 }
 
 func (b *Binary) Accept(visitor Visitor) (interface{}, error) {
@@ -200,9 +200,9 @@ func (b *Binary) Accept(visitor Visitor) (interface{}, error) {
 
 type Logical struct {
 	BaseNode
-	left  Expr
-	token lexer.TokenType
-	right Expr
+	Left  Expr
+	Token lexer.TokenType
+	Right Expr
 }
 
 func (b *Logical) Accept(visitor Visitor) (interface{}, error) {
@@ -211,8 +211,8 @@ func (b *Logical) Accept(visitor Visitor) (interface{}, error) {
 
 type Unary struct {
 	BaseNode
-	token lexer.TokenType
-	expr  Expr
+	Token lexer.TokenType
+	Expr  Expr
 }
 
 func (b *Unary) Accept(visitor Visitor) (interface{}, error) {
@@ -221,8 +221,8 @@ func (b *Unary) Accept(visitor Visitor) (interface{}, error) {
 
 type Comma struct {
 	BaseNode
-	left  Expr
-	right Expr
+	Left  Expr
+	Right Expr
 }
 
 func (b *Comma) Accept(visitor Visitor) (interface{}, error) {
@@ -231,9 +231,9 @@ func (b *Comma) Accept(visitor Visitor) (interface{}, error) {
 
 type Ternary struct {
 	BaseNode
-	left   Expr
-	middle Expr
-	right  Expr
+	Left   Expr
+	Middle Expr
+	Right  Expr
 }
 
 func (b *Ternary) Accept(visitor Visitor) (interface{}, error) {
@@ -242,7 +242,7 @@ func (b *Ternary) Accept(visitor Visitor) (interface{}, error) {
 
 type Grouping struct {
 	BaseNode
-	expr Expr
+	Expr Expr
 }
 
 func (b *Grouping) Accept(visitor Visitor) (interface{}, error) {
@@ -251,7 +251,7 @@ func (b *Grouping) Accept(visitor Visitor) (interface{}, error) {
 
 type Literal struct {
 	BaseNode
-	token lexer.Token
+	Token lexer.Token
 }
 
 func (b *Literal) Accept(visitor Visitor) (interface{}, error) {
@@ -260,8 +260,8 @@ func (b *Literal) Accept(visitor Visitor) (interface{}, error) {
 
 type GetExpr struct {
 	BaseNode
-	from     Expr
-	property lexer.Token
+	From     Expr
+	Property lexer.Token
 }
 
 func (g *GetExpr) Accept(v Visitor) (interface{}, error) {
@@ -270,9 +270,9 @@ func (g *GetExpr) Accept(v Visitor) (interface{}, error) {
 
 type SetExpr struct {
 	BaseNode
-	object Expr
-	name   lexer.Token
-	value  Expr
+	Object Expr
+	Name   lexer.Token
+	Value  Expr
 }
 
 func (s *SetExpr) Accept(v Visitor) (interface{}, error) {
@@ -281,7 +281,7 @@ func (s *SetExpr) Accept(v Visitor) (interface{}, error) {
 
 type Variable struct {
 	BaseNode
-	name string
+	Name string
 }
 
 func (b *Variable) Accept(visitor Visitor) (interface{}, error) {
@@ -290,8 +290,8 @@ func (b *Variable) Accept(visitor Visitor) (interface{}, error) {
 
 type Assign struct {
 	BaseNode
-	name  string
-	value Expr
+	Name  string
+	Value Expr
 }
 
 func (b *Assign) Accept(visitor Visitor) (interface{}, error) {
@@ -351,15 +351,15 @@ func GetExprEndPos(expr Expr) lexer.Pos {
 // NewBaseNodeSpanning creates a BaseNode that spans from the start of one position to the end of another
 func NewBaseNodeSpanning(start, end lexer.Pos) BaseNode {
 	return BaseNode{
-		startPos: start,
-		endPos:   end,
+		StartPos: start,
+		EndPos:   end,
 	}
 }
 
 // NewBaseNodeFromExprs creates a BaseNode that spans from the start of the first expression to the end of the last expression
 func NewBaseNodeFromExprs(first, last Expr) BaseNode {
 	return BaseNode{
-		startPos: GetExprStartPos(first),
-		endPos:   GetExprEndPos(last),
+		StartPos: GetExprStartPos(first),
+		EndPos:   GetExprEndPos(last),
 	}
 }
