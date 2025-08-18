@@ -420,7 +420,7 @@ func TestInterpreter_TableDriven(t *testing.T) {
 }
 
 func runLoxExpression(source string) (interface{}, error) {
-	return engine.Evaluate(strings.NewReader(source))
+	return engine.EvaluateExpr(strings.NewReader(source))
 }
 
 func runLox(source string) ([]string, error) {

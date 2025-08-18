@@ -7,9 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/matthisk/lox/interpreter"
-	"github.com/matthisk/lox/lexer"
-	"github.com/matthisk/lox/parser"
+	"github.com/matthisk/lox/engine"
 )
 
 func main() {
@@ -37,24 +35,9 @@ func runFile(filename string) {
 	}
 	defer file.Close()
 
-	lx := lexer.New(file)
-	res := lexer.Consume(lx)
-	if res.Err != nil {
-		fmt.Fprintf(os.Stderr, "Lexer error: %v\n", res.Err)
-		os.Exit(1)
-	}
-
-	ps := parser.New(res.Tokens)
-	stmts, err := ps.Parse()
+	err = engine.Run(file, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Parser error: %v\n", err)
-		os.Exit(1)
-	}
-
-	interpreter := interpreter.NewInterpreter()
-	err = interpreter.Run(stmts)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -64,7 +47,6 @@ func runREPL() {
 	fmt.Println("Type Lox expressions or statements. Press Ctrl+C to exit.")
 	fmt.Println()
 
-	interpreter := interpreter.NewInterpreter()
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -90,7 +72,7 @@ func runREPL() {
 		}
 
 		// Try to evaluate the input
-		evaluateREPLInput(line, interpreter)
+		evaluateREPLInput(line)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -98,39 +80,20 @@ func runREPL() {
 	}
 }
 
-func evaluateREPLInput(source string, interpreter *interpreter.Interpreter) {
-	// Lexical analysis
-	lx := lexer.New(bytes.NewBufferString(source))
-	lexResult := lexer.Consume(lx)
-	if lexResult.Err != nil {
-		fmt.Printf("Lexer error: %v\n", lexResult.Err)
-		return
-	}
+func evaluateREPLInput(source string) {
+	input := bytes.NewBufferString(source)
 
 	// Try parsing as statements first
-	p := parser.New(lexResult.Tokens)
-	stmts, err := p.Parse()
-	if err == nil && len(stmts) > 0 {
-		// Successfully parsed as statements - execute them
-		err := interpreter.Run(stmts)
-		if err != nil {
-			fmt.Printf("Runtime error: %v\n", err)
-		}
+	err := engine.Run(input, nil)
+	if err == nil {
 		return
 	}
 
-	tokens := lexResult.Tokens
-	p = parser.New(tokens)
-	expr, err := p.Expression()
+	// If that failed, try parsing as an expression
+	input = bytes.NewBufferString(source)
+	result, err := engine.EvaluateExpr(input)
 	if err != nil {
-		fmt.Printf("Parse error: %v\n", err)
-		return
-	}
-
-	// Evaluate the expression and print the result
-	result, err := interpreter.EvaluateExpression(expr)
-	if err != nil {
-		fmt.Printf("Runtime error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
