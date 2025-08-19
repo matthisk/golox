@@ -1023,6 +1023,17 @@ func (p *Parser) primary() (Expr, error) {
 		}, nil
 	}
 
+	if p.match(lexer.THIS) {
+		token := p.previous()
+		return &Variable{
+			BaseNode: BaseNode{
+				StartPos: token.StartPos,
+				EndPos:   token.EndPos,
+			},
+			Name: "this",
+		}, nil
+	}
+
 	if p.match(lexer.LEFT_PAREN) {
 		expr, _ := p.expression()
 		err := p.consume(lexer.RIGHT_PAREN, "Expect ')' after expression.")

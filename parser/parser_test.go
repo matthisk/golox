@@ -406,6 +406,19 @@ func TestParserTD(t *testing.T) {
 			expected: "",
 			wantErr:  true,
 		},
+		{
+			name: "this expression",
+			tokens: []lexer.Token{
+				{Type: lexer.THIS},
+				{Type: lexer.DOT},
+				{Type: lexer.IDENTIFIER, Lexeme: "size"},
+				{Type: lexer.EQUAL},
+				{Type: lexer.NUMBER, Lexeme: 10},
+				{Type: lexer.EOF},
+			},
+			expected: "this.size = 10",
+			wantErr:  false,
+		},
 	}
 
 	for _, tt := range tests {
