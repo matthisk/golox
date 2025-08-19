@@ -1,0 +1,17 @@
+class Tree {
+    grow() {
+        this.size = tree.size + 1;
+    }
+}
+
+fun main() {
+    var tree = Tree();
+
+    for (var i = 0; i < 10; i = i + 1) {
+        tree.grow();
+    }
+
+    print tree.size;
+}
+
+main();

@@ -22,6 +22,12 @@ type Resolver struct {
 	scopes          ds.Stack[map[string]bool]
 }
 
+func (r *Resolver) Resolve(stmts []parser.Stmt) error {
+	_, err := r.resolveStmts(stmts)
+
+	return err
+}
+
 func (r *Resolver) VisitSet(s *parser.SetExpr) (interface{}, error) {
 	_, err := r.resolveExpr(s.Object)
 	if err != nil {

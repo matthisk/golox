@@ -33,6 +33,7 @@ type Lexer struct {
 }
 
 type Lex struct {
+	Source string
 	Tokens []Token
 	Err    error
 }
@@ -467,6 +468,7 @@ func Consume(lx *Lexer) Lex {
 	tokens = append(tokens, token)
 
 	return Lex{
+		Source: lx.Source(),
 		Tokens: tokens,
 		Err:    lx.err,
 	}

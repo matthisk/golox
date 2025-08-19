@@ -410,7 +410,7 @@ func TestParserTD(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := New(tt.tokens)
+			parser := New(tt.tokens, "")
 			expr, err := parser.expression()
 
 			if tt.wantErr {
@@ -1680,7 +1680,7 @@ func TestParserStatementsTD(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := New(tt.tokens)
+			parser := New(tt.tokens, "")
 			stmt, err := parser.declStatement()
 
 			if tt.wantErr {
@@ -1717,7 +1717,8 @@ func TestErrorHandling(t *testing.T) {
 		t.Fatalf("Failed to lex test file: %v", toks.Err)
 	}
 
-	parser := New(toks.Tokens)
+	parser := New(toks.Tokens, toks.Source)
+	parser.source = string(data)
 	_, _ = parser.Parse()
 
 	fmt.Print(parser.ReportErrors())

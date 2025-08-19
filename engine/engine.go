@@ -15,7 +15,7 @@ func Run(in io.Reader, printer interpreter.Printer) error {
 		return err
 	}
 
-	ps := parser.New(lexResult.Tokens)
+	ps := parser.New(lexResult.Tokens, lexResult.Source)
 	stmts, err := ps.Parse()
 	if err != nil {
 		fmt.Println(ps.ReportErrors())
@@ -29,6 +29,12 @@ func Run(in io.Reader, printer interpreter.Printer) error {
 		it = interpreter.NewInterpreter()
 	}
 
+	resolver := interpreter.NewResolver(it)
+	err = resolver.Resolve(stmts)
+	if err != nil {
+		return err
+	}
+
 	return it.Run(stmts)
 }
 
@@ -38,7 +44,7 @@ func EvaluateExpr(in io.Reader) (interface{}, error) {
 		return nil, err
 	}
 
-	ps := parser.New(lexResult.Tokens)
+	ps := parser.New(lexResult.Tokens, lexResult.Source)
 	expr, err := ps.Expression()
 	if err != nil {
 		fmt.Println(ps.ReportErrors())

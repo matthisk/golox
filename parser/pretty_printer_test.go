@@ -35,7 +35,7 @@ print result;`
 	}
 
 	// Parse the tokens into AST
-	p := New(lexResult.Tokens)
+	p := New(lexResult.Tokens, lexResult.Source)
 	stmts, err := p.Parse()
 	if err != nil {
 		t.Fatalf("Failed to parse input: %v", err)
@@ -83,7 +83,7 @@ var counter = makeCounter();
 	}
 
 	// Parse the tokens into AST
-	p := New(lexResult.Tokens)
+	p := New(lexResult.Tokens, lexResult.Source)
 	stmts, err := p.Parse()
 	if err != nil {
 		t.Fatalf("Failed to parse input: %v", err)

@@ -61,9 +61,9 @@ type Parser struct {
 	errors       *Errors
 }
 
-func New(toks []lexer.Token) *Parser {
+func New(toks []lexer.Token, source string) *Parser {
 	return &Parser{
-		source:       "",
+		source:       source,
 		tokens:       toks,
 		index:        0,
 		contextStack: ds.NewStack[*ContextItem](),
@@ -82,16 +82,20 @@ func (p *Parser) Parse() ([]Stmt, error) {
 
 // ReportErrors returns a stream which
 func (p *Parser) ReportErrors() string {
+	if p.errors == nil {
+		return ""
+	}
+
 	var w = bytes.NewBufferString("")
 
 	for _, e := range p.errors.errs {
 		fmt.Fprintf(w, "%s\n\n", e.Error())
 		atLine := e.at.StartPos.Line
 		sourceLines := strings.Split(p.source, "\n")
-		if atLine > 1 {
+		if atLine > 2 {
 			printSourceLine(w, atLine-2, sourceLines[atLine-3])
 		}
-		if atLine > 0 {
+		if atLine > 1 {
 			printSourceLine(w, atLine-1, sourceLines[atLine-2])
 		}
 		printSourceLine(w, atLine, sourceLines[atLine-1])
@@ -106,15 +110,11 @@ func printSourceLine(w io.Writer, n int, line string) {
 	fmt.Fprintf(w, "%d| %s\n", n, line)
 }
 
-func findLine(sourceLines []string, lineNumber int) string {
-	return sourceLines[lineNumber-1]
-}
-
 func (p *Parser) Expression() (Expr, error) {
 	return p.expression()
 }
 
-func (p *Parser) statements() ([]Stmt, *Errors) {
+func (p *Parser) statements() ([]Stmt, error) {
 	var result []Stmt
 	var errors []*Error
 
@@ -129,9 +129,12 @@ func (p *Parser) statements() ([]Stmt, *Errors) {
 		}
 	}
 
-	p.errors = NewErrors(errors)
+	if len(errors) > 0 {
+		p.errors = NewErrors(errors)
+		return result, p.errors
+	}
 
-	return result, p.errors
+	return result, nil
 }
 
 func (p *Parser) declStatement() (Stmt, error) {
@@ -249,6 +252,9 @@ func (p *Parser) statement() (Stmt, error) {
 }
 
 func (p *Parser) class() (Stmt, error) {
+	p.contextStack.Push(&ContextItem{"class", false})
+	defer p.contextStack.Pop()
+
 	startPos := p.previous().StartPos
 
 	err := p.consume(lexer.IDENTIFIER, "I was expecting to see a class Name after the `class` keyword.")
@@ -288,6 +294,9 @@ func (p *Parser) class() (Stmt, error) {
 }
 
 func (p *Parser) function(funType string) (Stmt, error) {
+	p.contextStack.Push(&ContextItem{funType, false})
+	defer p.contextStack.Pop()
+
 	pos := p.previous().StartPos
 	err := p.consume(lexer.IDENTIFIER, fmt.Sprintf("Expect %s Name.", funType))
 	if err != nil {
@@ -440,9 +449,10 @@ func (p *Parser) blockStatement() (Stmt, error) {
 }
 
 func (p *Parser) ifStatement() (Stmt, error) {
-	pos := p.previous().StartPos
-	p.contextStack.Push(&ContextItem{Type: "if", CanBreak: true})
+	p.contextStack.Push(&ContextItem{"if", true})
 	defer p.contextStack.Pop()
+
+	pos := p.previous().StartPos
 
 	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after if statement.")
 	if err != nil {
@@ -484,9 +494,10 @@ func (p *Parser) ifStatement() (Stmt, error) {
 }
 
 func (p *Parser) whileStatement() (Stmt, error) {
-	pos := p.previous().StartPos
-	p.contextStack.Push(&ContextItem{Type: "while", CanBreak: true})
+	p.contextStack.Push(&ContextItem{"while", true})
 	defer p.contextStack.Pop()
+
+	pos := p.previous().StartPos
 
 	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after 'while'.")
 	if err != nil {
@@ -519,9 +530,10 @@ func (p *Parser) whileStatement() (Stmt, error) {
 }
 
 func (p *Parser) forStatement() (Stmt, error) {
-	pos := p.previous().StartPos
-	p.contextStack.Push(&ContextItem{Type: "for", CanBreak: true})
+	p.contextStack.Push(&ContextItem{"for", true})
 	defer p.contextStack.Pop()
+
+	pos := p.previous().StartPos
 
 	err := p.consume(lexer.LEFT_PAREN, "Expect '(' after 'for'.")
 	if err != nil {
