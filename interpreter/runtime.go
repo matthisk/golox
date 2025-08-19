@@ -51,16 +51,24 @@ type LoxClass struct {
 	methods map[string]LoxCallable
 }
 
-func (l *LoxClass) Bind(i *LoxInstance) {
-	panic("cannot bind a LoxClass only LoxFunctions")
-}
-
 func (l *LoxClass) Arity() int {
+	initializer := l.FindMethod("init")
+	if initializer != nil {
+		return initializer.Arity()
+	}
 	return 0
 }
 
 func (l *LoxClass) Call(i *Interpreter, args []interface{}) (interface{}, error) {
 	instance := NewLoxInstance(l)
+	initializer := l.FindMethod("init")
+	if initializer != nil {
+		_, err := initializer.(*LoxFunction).Bind(instance).Call(i, args)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return instance, nil
 }
 
@@ -73,8 +81,9 @@ func (l *LoxClass) FindMethod(property string) LoxCallable {
 }
 
 type LoxFunction struct {
-	declaration *parser.Function
-	closure     *Environment
+	declaration   *parser.Function
+	closure       *Environment
+	isInitializer bool
 }
 
 func (l *LoxFunction) Arity() int {
@@ -88,13 +97,22 @@ func (l *LoxFunction) Call(i *Interpreter, args []interface{}) (interface{}, err
 		env.Define(param.Lexeme.(string), args[j])
 	}
 
-	return i.executeBlock(l.declaration.Body, env)
+	result, err := i.executeBlock(l.declaration.Body, env)
+	if err != nil {
+		return nil, err
+	}
+
+	if l.isInitializer {
+		return l.closure.GetAt(0, "this")
+	}
+
+	return result, nil
 }
 
 func (l *LoxFunction) Bind(i *LoxInstance) *LoxFunction {
 	env := NewEnvironment(l.closure)
 	env.Define("this", i)
-	return &LoxFunction{l.declaration, env}
+	return &LoxFunction{l.declaration, env, l.isInitializer}
 }
 
 type Clock struct{}

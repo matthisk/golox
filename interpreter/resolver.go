@@ -9,21 +9,31 @@ import (
 )
 
 type FunctionType = string
+type ClassType = string
 
 const (
-	NONE     FunctionType = "NONE"
-	FUNCTION FunctionType = "FUNCTION"
-	METHOD   FunctionType = "METHOD"
+	NONE        FunctionType = "NONE"
+	FUNCTION    FunctionType = "FUNCTION"
+	METHOD      FunctionType = "METHOD"
+	INITIALIZER FunctionType = "INITIALIZER"
+	CLASS_NONE  ClassType    = "NONE"
+	CLASS       ClassType    = "CLASS"
 )
 
 type Resolver struct {
 	interpreter     *Interpreter
 	currentFunction FunctionType
+	currentClass    ClassType
 	scopes          ds.Stack[map[string]bool]
 }
 
 func NewResolver(interpreter *Interpreter) *Resolver {
-	return &Resolver{interpreter: interpreter, currentFunction: NONE, scopes: ds.Stack[map[string]bool]{}}
+	return &Resolver{
+		interpreter:     interpreter,
+		currentFunction: NONE,
+		currentClass:    CLASS_NONE,
+		scopes:          ds.Stack[map[string]bool]{},
+	}
 }
 
 func (r *Resolver) Resolve(stmts []parser.Stmt) error {
@@ -33,6 +43,10 @@ func (r *Resolver) Resolve(stmts []parser.Stmt) error {
 }
 
 func (r *Resolver) VisitThis(t *parser.This) (interface{}, error) {
+	if r.currentClass == CLASS_NONE {
+		return nil, errors.New("can't use this variable outside of a class")
+	}
+
 	r.resolveLocal(t, "this")
 	return nil, nil
 }
@@ -46,6 +60,10 @@ func (r *Resolver) VisitSet(s *parser.SetExpr) (interface{}, error) {
 }
 
 func (r *Resolver) VisitClass(s *parser.ClassStatement) (interface{}, error) {
+	enclosingClass := r.currentClass
+	r.currentClass = CLASS
+	defer func() { r.currentClass = enclosingClass }()
+
 	err := r.declare(s.Name.Lexeme.(string))
 	if err != nil {
 		return nil, err
@@ -58,7 +76,11 @@ func (r *Resolver) VisitClass(s *parser.ClassStatement) (interface{}, error) {
 	r.define("this")
 
 	for _, method := range s.Methods {
-		err := r.resolveFunction(method, METHOD)
+		declaration := METHOD
+		if method.Name.Lexeme.(string) == "init" {
+			declaration = INITIALIZER
+		}
+		err := r.resolveFunction(method, declaration)
 		if err != nil {
 			return nil, err
 		}
@@ -282,6 +304,10 @@ func (r *Resolver) VisitReturnStmt(s *parser.ReturnStmt) (interface{}, error) {
 	}
 
 	if s.Expr != nil {
+		if r.currentFunction == INITIALIZER {
+			return nil, errors.New("can't return from initializer")
+		}
+
 		return r.resolveExpr(s.Expr)
 	}
 

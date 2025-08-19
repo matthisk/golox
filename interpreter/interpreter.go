@@ -124,8 +124,9 @@ func (i *Interpreter) VisitClass(s *parser.ClassStatement) (interface{}, error) 
 
 	for _, method := range s.Methods {
 		class.methods[method.Name.Lexeme.(string)] = &LoxFunction{
-			declaration: method,
-			closure:     i.env,
+			declaration:   method,
+			closure:       i.env,
+			isInitializer: method.Name.Lexeme.(string) == "init",
 		}
 	}
 
@@ -139,8 +140,9 @@ func (i *Interpreter) VisitClass(s *parser.ClassStatement) (interface{}, error) 
 
 func (i *Interpreter) VisitFunction(f *parser.Function) (interface{}, error) {
 	fun := &LoxFunction{
-		declaration: f,
-		closure:     i.env,
+		declaration:   f,
+		closure:       i.env,
+		isInitializer: false,
 	}
 	i.env.Define(f.Name.Lexeme.(string), fun)
 	return nil, nil

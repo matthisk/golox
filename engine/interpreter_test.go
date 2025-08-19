@@ -1,12 +1,10 @@
-package interpreter
+package engine
 
 import (
 	"bytes"
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/matthisk/lox/engine"
 )
 
 func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
@@ -287,6 +285,7 @@ func TestInterpreter_WithStmts_TableDriven(t *testing.T) {
 		{"Instantiate a class", "class RoundBall { roll() { return \"rolled\"; } } print RoundBall();", []string{"RoundBall instance"}, false},
 		{"Set a property on a class", "class RoundBall { } var ball = RoundBall(); ball.size = 5; print ball.size;", []string{"5"}, false},
 		{"Call a method on a class", "class RoundBall { roll() { print \"roll roll roll\"; } } var ball = RoundBall(); ball.roll();", []string{"roll roll roll"}, false},
+		{"this binding outside of a class", "fun noThis() { return this; }", []string{}, true},
 	}
 
 	for _, tt := range tests {
@@ -420,13 +419,13 @@ func TestInterpreter_TableDriven(t *testing.T) {
 }
 
 func runLoxExpression(source string) (interface{}, error) {
-	return engine.EvaluateExpr(strings.NewReader(source))
+	return EvaluateExpr(strings.NewReader(source))
 }
 
 func runLox(source string) ([]string, error) {
 	printer := &SpyPrinter{}
 	in := bytes.NewBufferString(source)
-	err := engine.Run(in, printer)
+	err := Run(in, printer)
 
 	return printer.log, err
 }
