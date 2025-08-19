@@ -9,6 +9,10 @@ import (
 
 type AstPrinter struct{}
 
+func (e AstPrinter) VisitThis(t *This) (interface{}, error) {
+	return "this", nil
+}
+
 func (e AstPrinter) VisitGet(g *GetExpr) (interface{}, error) {
 	from, err := g.From.Accept(e)
 	if err != nil {
@@ -23,12 +27,12 @@ func (e AstPrinter) VisitSet(s *SetExpr) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	value, err := s.Value.Accept(e)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return fmt.Sprintf("%s.%s = %s", object, s.Name.Lexeme.(string), value), nil
 }
 
@@ -36,7 +40,7 @@ func (e AstPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 	if r.Expr == nil {
 		return "return;", nil
 	}
-	
+
 	expr, err := r.Expr.Accept(e)
 	if err != nil {
 		return nil, err
@@ -46,7 +50,7 @@ func (e AstPrinter) VisitReturnStmt(r *ReturnStmt) (interface{}, error) {
 
 func (e AstPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
 	var methods []string
-	
+
 	for _, method := range s.Methods {
 		methodStr, err := method.Accept(e)
 		if err != nil {
@@ -54,14 +58,14 @@ func (e AstPrinter) VisitClass(s *ClassStatement) (interface{}, error) {
 		}
 		methods = append(methods, methodStr.(string))
 	}
-	
+
 	var body strings.Builder
 	body.WriteString("{\n")
 	for _, method := range methods {
 		body.WriteString(fmt.Sprintf("  %s\n", method))
 	}
 	body.WriteString("}")
-	
+
 	return fmt.Sprintf("class %s %s", s.Name.Lexeme.(string), body.String()), nil
 }
 
@@ -214,7 +218,7 @@ func (e AstPrinter) VisitVarDecl(vd *VarDecl) (interface{}, error) {
 	if vd.Initializer == nil {
 		return fmt.Sprintf("var %s;", vd.Name), nil
 	}
-	
+
 	initializer, err := vd.Initializer.Accept(e)
 	if err != nil {
 		return nil, err

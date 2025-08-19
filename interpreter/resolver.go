@@ -22,10 +22,19 @@ type Resolver struct {
 	scopes          ds.Stack[map[string]bool]
 }
 
+func NewResolver(interpreter *Interpreter) *Resolver {
+	return &Resolver{interpreter: interpreter, currentFunction: NONE, scopes: ds.Stack[map[string]bool]{}}
+}
+
 func (r *Resolver) Resolve(stmts []parser.Stmt) error {
 	_, err := r.resolveStmts(stmts)
 
 	return err
+}
+
+func (r *Resolver) VisitThis(t *parser.This) (interface{}, error) {
+	r.resolveLocal(t, "this")
+	return nil, nil
 }
 
 func (r *Resolver) VisitSet(s *parser.SetExpr) (interface{}, error) {
@@ -43,6 +52,11 @@ func (r *Resolver) VisitClass(s *parser.ClassStatement) (interface{}, error) {
 	}
 	r.define(s.Name.Lexeme.(string))
 
+	r.beginScope()
+	defer r.endScope()
+
+	r.define("this")
+
 	for _, method := range s.Methods {
 		err := r.resolveFunction(method, METHOD)
 		if err != nil {
@@ -51,10 +65,6 @@ func (r *Resolver) VisitClass(s *parser.ClassStatement) (interface{}, error) {
 	}
 
 	return nil, nil
-}
-
-func NewResolver(interpreter *Interpreter) *Resolver {
-	return &Resolver{interpreter: interpreter, currentFunction: NONE, scopes: ds.Stack[map[string]bool]{}}
 }
 
 func (r *Resolver) VisitPrintStmt(node *parser.PrintStmt) (interface{}, error) {
@@ -137,16 +147,6 @@ func (r *Resolver) VisitVariable(b *parser.Variable) (interface{}, error) {
 	r.resolveLocal(b, b.Name)
 
 	return nil, nil
-}
-
-func (r *Resolver) resolveLocal(expr parser.Expr, name string) {
-	for i := r.scopes.Size() - 1; i >= 0; i-- {
-		scope := r.scopes.Get(i)
-		if _, ok := scope[name]; ok {
-			r.interpreter.resolve(expr, r.scopes.Size()-i-1)
-			break
-		}
-	}
 }
 
 func (r *Resolver) VisitAssign(b *parser.Assign) (interface{}, error) {
@@ -286,6 +286,16 @@ func (r *Resolver) VisitReturnStmt(s *parser.ReturnStmt) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+func (r *Resolver) resolveLocal(expr parser.Expr, name string) {
+	for i := r.scopes.Size() - 1; i >= 0; i-- {
+		scope := r.scopes.Get(i)
+		if _, ok := scope[name]; ok {
+			r.interpreter.resolve(expr, r.scopes.Size()-i-1)
+			break
+		}
+	}
 }
 
 func (r *Resolver) resolveExpr(expr parser.Expr) (interface{}, error) {

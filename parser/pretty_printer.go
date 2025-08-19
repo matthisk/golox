@@ -11,6 +11,10 @@ type PrettyPrinter struct {
 	indent int
 }
 
+func (p *PrettyPrinter) VisitThis(t *This) (interface{}, error) {
+	return "this", nil
+}
+
 func (p *PrettyPrinter) VisitGet(g *GetExpr) (interface{}, error) {
 	from, err := g.From.Accept(p)
 	if err != nil {

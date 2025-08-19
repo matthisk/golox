@@ -73,6 +73,13 @@ func NewInterpreterWithPrinter(printer Printer) *Interpreter {
 	}
 }
 
+func (i *Interpreter) VisitThis(t *parser.This) (interface{}, error) {
+	if d, ok := i.locals[t]; ok {
+		return i.env.GetAt(d, "this")
+	}
+	return i.globals.Get("this")
+}
+
 func (i *Interpreter) VisitSet(s *parser.SetExpr) (interface{}, error) {
 	name := s.Name.Lexeme.(string)
 	object, err := i.evaluate(s.Object)

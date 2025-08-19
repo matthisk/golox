@@ -1025,12 +1025,11 @@ func (p *Parser) primary() (Expr, error) {
 
 	if p.match(lexer.THIS) {
 		token := p.previous()
-		return &Variable{
+		return &This{
 			BaseNode: BaseNode{
 				StartPos: token.StartPos,
 				EndPos:   token.EndPos,
 			},
-			Name: "this",
 		}, nil
 	}
 

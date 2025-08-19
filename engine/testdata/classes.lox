@@ -1,11 +1,12 @@
 class Tree {
     grow() {
-        this.size = tree.size + 1;
+        this.size = this.size + 1;
     }
 }
 
 fun main() {
     var tree = Tree();
+    tree.size = 3;
 
     for (var i = 0; i < 10; i = i + 1) {
         tree.grow();

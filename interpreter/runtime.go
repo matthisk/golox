@@ -34,7 +34,9 @@ func (l *LoxInstance) Get(property string) (interface{}, error) {
 	}
 
 	if m := l.class.FindMethod(property); m != nil {
-		return m, nil
+		// Only LoxFunction's can be set as class methods.
+		// Panic in case we find an illegal LoxCallable as a Class' method.
+		return m.(*LoxFunction).Bind(l), nil
 	}
 
 	return nil, fmt.Errorf("undefined property %s", property)
@@ -47,6 +49,10 @@ func (l *LoxInstance) Set(property string, val interface{}) {
 type LoxClass struct {
 	name    string
 	methods map[string]LoxCallable
+}
+
+func (l *LoxClass) Bind(i *LoxInstance) {
+	panic("cannot bind a LoxClass only LoxFunctions")
 }
 
 func (l *LoxClass) Arity() int {
@@ -83,6 +89,12 @@ func (l *LoxFunction) Call(i *Interpreter, args []interface{}) (interface{}, err
 	}
 
 	return i.executeBlock(l.declaration.Body, env)
+}
+
+func (l *LoxFunction) Bind(i *LoxInstance) *LoxFunction {
+	env := NewEnvironment(l.closure)
+	env.Define("this", i)
+	return &LoxFunction{l.declaration, env}
 }
 
 type Clock struct{}

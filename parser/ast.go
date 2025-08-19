@@ -29,6 +29,7 @@ type Visitor interface {
 	VisitClass(s *ClassStatement) (interface{}, error)
 	VisitGet(g *GetExpr) (interface{}, error)
 	VisitSet(s *SetExpr) (interface{}, error)
+	VisitThis(t *This) (interface{}, error)
 }
 
 type Stmt interface {
@@ -277,6 +278,14 @@ type SetExpr struct {
 
 func (s *SetExpr) Accept(v Visitor) (interface{}, error) {
 	return v.VisitSet(s)
+}
+
+type This struct {
+	BaseNode
+}
+
+func (t *This) Accept(v Visitor) (interface{}, error) {
+	return v.VisitThis(t)
 }
 
 type Variable struct {
