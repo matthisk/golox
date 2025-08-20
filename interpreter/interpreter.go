@@ -114,23 +114,46 @@ func (i *Interpreter) VisitGet(g *parser.GetExpr) (interface{}, error) {
 }
 
 func (i *Interpreter) VisitClass(s *parser.ClassStatement) (interface{}, error) {
+	env := i.env
 	name := s.Name.Lexeme.(string)
 
-	i.env.Define(name, nil)
+	var super *LoxClass
+	if s.Super != nil {
+		sp, err := i.evaluate(s.Super)
+		if err != nil {
+			return nil, err
+		}
+
+		if s, ok := sp.(*LoxClass); ok {
+			super = s
+		}
+	}
+
+	env.Define(name, nil)
 	class := &LoxClass{
 		name:    name,
+		super:   super,
 		methods: make(map[string]LoxCallable),
+	}
+
+	if super != nil {
+		env = NewEnvironment(env)
+		env.Define("super", super)
 	}
 
 	for _, method := range s.Methods {
 		class.methods[method.Name.Lexeme.(string)] = &LoxFunction{
 			declaration:   method,
-			closure:       i.env,
+			closure:       env,
 			isInitializer: method.Name.Lexeme.(string) == "init",
 		}
 	}
 
-	err := i.env.Assign(name, class)
+	if super != nil {
+		env = env.enclosing
+	}
+
+	err := env.Assign(name, class)
 	if err != nil {
 		return nil, err
 	}
@@ -334,6 +357,26 @@ func (i *Interpreter) VisitLogical(b *parser.Logical) (interface{}, error) {
 	}
 
 	return i.evaluate(b.Right)
+}
+
+func (i *Interpreter) VisitSuper(s *parser.Super) (interface{}, error) {
+	distance := i.locals[s]
+	class, err := i.env.GetAt(distance, "super")
+	if err != nil {
+		return nil, err
+	}
+
+	object, err := i.env.GetAt(distance-1, "this")
+	if err != nil {
+		return nil, err
+	}
+
+	method := class.(*LoxClass).FindMethod(s.Method.Lexeme.(string))
+	if method == nil {
+		return nil, fmt.Errorf("undefined method '%s' on super", s.Method.Lexeme)
+	}
+
+	return method.(*LoxFunction).Bind(object.(*LoxInstance)), nil
 }
 
 func (i *Interpreter) VisitBinary(node *parser.Binary) (interface{}, error) {

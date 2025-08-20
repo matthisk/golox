@@ -18,6 +18,7 @@ const (
 	INITIALIZER FunctionType = "INITIALIZER"
 	CLASS_NONE  ClassType    = "NONE"
 	CLASS       ClassType    = "CLASS"
+	SUBCLASS    ClassType    = "SUBCLASS"
 )
 
 type Resolver struct {
@@ -51,6 +52,18 @@ func (r *Resolver) VisitThis(t *parser.This) (interface{}, error) {
 	return nil, nil
 }
 
+func (r *Resolver) VisitSuper(s *parser.Super) (interface{}, error) {
+	if r.currentClass != CLASS {
+		return nil, errors.New("can't use super variable outside of a class")
+	}
+	if r.currentClass != SUBCLASS {
+		return nil, errors.New("can't use super variable in a class without a superclass")
+	}
+
+	r.resolveLocal(s, "super")
+	return nil, nil
+}
+
 func (r *Resolver) VisitSet(s *parser.SetExpr) (interface{}, error) {
 	_, err := r.resolveExpr(s.Object)
 	if err != nil {
@@ -61,7 +74,11 @@ func (r *Resolver) VisitSet(s *parser.SetExpr) (interface{}, error) {
 
 func (r *Resolver) VisitClass(s *parser.ClassStatement) (interface{}, error) {
 	enclosingClass := r.currentClass
-	r.currentClass = CLASS
+	if s.Super != nil {
+		r.currentClass = SUBCLASS
+	} else {
+		r.currentClass = CLASS
+	}
 	defer func() { r.currentClass = enclosingClass }()
 
 	err := r.declare(s.Name.Lexeme.(string))
@@ -69,6 +86,24 @@ func (r *Resolver) VisitClass(s *parser.ClassStatement) (interface{}, error) {
 		return nil, err
 	}
 	r.define(s.Name.Lexeme.(string))
+
+	if s.Super != nil && s.Super.Name == s.Name.Lexeme.(string) {
+		return nil, errors.New("a class can't inherit from itself")
+	}
+
+	if s.Super != nil {
+		_, err := r.resolveExpr(s.Super)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if s.Super != nil {
+		r.beginScope()
+		defer r.endScope()
+
+		r.define("super")
+	}
 
 	r.beginScope()
 	defer r.endScope()

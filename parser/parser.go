@@ -43,7 +43,7 @@ term           -> factor ( ( "-" | "+" ) factor )* ;
 factor         -> unary ( ( "/" | "*" ) unary )* ;
 unary          -> ( "!" | "-" ) unary ;
 call           -> primary ( "(" arguments ")" | "." IDENTIFIER )*;
-primary        -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
+primary        -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER | SUPER "." IDENTIFIER;
 arguments      -> expression ( "," expression )* ;
 */
 
@@ -257,12 +257,28 @@ func (p *Parser) class() (Stmt, error) {
 
 	startPos := p.previous().StartPos
 
-	err := p.consume(lexer.IDENTIFIER, "I was expecting to see a class Name after the `class` keyword.")
+	err := p.consume(lexer.IDENTIFIER, "I was expecting to see a class Name after the `class` Keyword.")
 	if err != nil {
 		return nil, err
 	}
 
 	name := p.previous()
+
+	var super *Variable
+	if p.match(lexer.LESS) {
+		err := p.consume(lexer.IDENTIFIER, "I was expecting to see a class name from which to inherit after the `<` sign.")
+		if err != nil {
+			return nil, err
+		}
+
+		super = &Variable{
+			BaseNode: BaseNode{
+				StartPos: p.previous().StartPos,
+				EndPos:   p.previous().EndPos,
+			},
+			Name: p.previous().Lexeme.(string),
+		}
+	}
 
 	err = p.consume(lexer.LEFT_BRACE, "I was expecting to see an opening brace `{` after the class Name.")
 	if err != nil {
@@ -271,7 +287,7 @@ func (p *Parser) class() (Stmt, error) {
 
 	var methods []*Function
 	for p.peek().Type != lexer.RIGHT_BRACE && !p.atEnd() {
-		fun, err := p.function("method")
+		fun, err := p.function("Method")
 		if err != nil {
 			return nil, err
 		}
@@ -289,6 +305,7 @@ func (p *Parser) class() (Stmt, error) {
 			EndPos:   p.previous().EndPos,
 		},
 		Name:    name,
+		Super:   super,
 		Methods: methods,
 	}, nil
 }
@@ -1047,6 +1064,25 @@ func (p *Parser) primary() (Expr, error) {
 				EndPos:   rightParen.EndPos,
 			},
 			Expr: expr,
+		}, nil
+	}
+
+	if p.match(lexer.SUPER) {
+		keyword := p.previous()
+		err := p.consume(lexer.DOT, "Expect '.' after super.")
+		if err != nil {
+			return nil, err
+		}
+		err = p.consume(lexer.IDENTIFIER, "Expect identifier after 'super.'")
+		method := p.previous()
+		if err != nil {
+			return nil, err
+		}
+
+		return &Super{
+			BaseNode: BaseNode{},
+			Keyword:  keyword,
+			Method:   method,
 		}, nil
 	}
 

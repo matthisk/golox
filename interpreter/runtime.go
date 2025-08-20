@@ -39,6 +39,12 @@ func (l *LoxInstance) Get(property string) (interface{}, error) {
 		return m.(*LoxFunction).Bind(l), nil
 	}
 
+	if l.class.super != nil {
+		if m := l.class.super.FindMethod(property); m != nil {
+			return m.(*LoxFunction).Bind(l), nil
+		}
+	}
+
 	return nil, fmt.Errorf("undefined property %s", property)
 }
 
@@ -48,6 +54,7 @@ func (l *LoxInstance) Set(property string, val interface{}) {
 
 type LoxClass struct {
 	name    string
+	super   *LoxClass
 	methods map[string]LoxCallable
 }
 

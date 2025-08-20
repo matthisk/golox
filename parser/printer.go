@@ -9,6 +9,10 @@ import (
 
 type AstPrinter struct{}
 
+func (e AstPrinter) VisitSuper(s *Super) (interface{}, error) {
+	return fmt.Sprintf("super.%s", s.Method.Lexeme.(string)), nil
+}
+
 func (e AstPrinter) VisitThis(t *This) (interface{}, error) {
 	return "this", nil
 }

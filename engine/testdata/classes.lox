@@ -7,8 +7,10 @@ class Tree {
     }
 }
 
+class Oak < Tree {}
+
 fun main() {
-    var tree = Tree();
+    var tree = Oak();
 
     for (var i = 0; i < 10; i = i + 1) {
         tree.grow();

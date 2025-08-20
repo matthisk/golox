@@ -30,6 +30,7 @@ type Visitor interface {
 	VisitGet(g *GetExpr) (interface{}, error)
 	VisitSet(s *SetExpr) (interface{}, error)
 	VisitThis(t *This) (interface{}, error)
+	VisitSuper(s *Super) (interface{}, error)
 }
 
 type Stmt interface {
@@ -122,6 +123,7 @@ func (s *WhileStatement) Accept(v Visitor) (interface{}, error) {
 type ClassStatement struct {
 	BaseNode
 	Name    lexer.Token
+	Super   *Variable
 	Methods []*Function
 }
 
@@ -278,6 +280,16 @@ type SetExpr struct {
 
 func (s *SetExpr) Accept(v Visitor) (interface{}, error) {
 	return v.VisitSet(s)
+}
+
+type Super struct {
+	BaseNode
+	Keyword lexer.Token
+	Method  lexer.Token
+}
+
+func (s *Super) Accept(v Visitor) (interface{}, error) {
+	return v.VisitSuper(s)
 }
 
 type This struct {

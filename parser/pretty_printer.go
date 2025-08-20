@@ -11,6 +11,10 @@ type PrettyPrinter struct {
 	indent int
 }
 
+func (p *PrettyPrinter) VisitSuper(s *Super) (interface{}, error) {
+	return fmt.Sprintf("super.%s", s.Method.Lexeme.(string)), nil
+}
+
 func (p *PrettyPrinter) VisitThis(t *This) (interface{}, error) {
 	return "this", nil
 }
