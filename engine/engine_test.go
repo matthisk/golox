@@ -15,6 +15,7 @@ func TestEngine(t *testing.T) {
 		{name: "inheritance (1)", filename: "testdata/inheritance.lox"},
 		{name: "inheritance (2)", filename: "testdata/inheritance_2.lox"},
 		{name: "inheritance (3)", filename: "testdata/inheritance_3.lox"},
+		{name: "fibonacci", filename: "testdata/fibonacci.lox"},
 	}
 
 	for _, tt := range tests {
